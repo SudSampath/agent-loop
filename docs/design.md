@@ -1,0 +1,11 @@
+# Design and provenance
+
+The portable layer contains working preferences, five reviewed local skills, launchers, and installation logic. Machine paths, authentication, connectors, sessions, and employer knowledge stay on the machine. The selected vault is optional; a new employer can use a separate approved knowledge directory. These preferences guide behavior; they are not an access-control boundary. Use separate OS accounts for stronger work/personal separation.
+
+Inspiration was reviewed on 2026-09-22 from Obsidian's `agent-system/new-machine-setup-guide.md`, `headroom-rtk-orca.md`, `skills-manifest.md`, `validation.md`, and `me/CORE-PREFERENCES.md`. Only the five reviewed skill definitions and their short generic pattern references are carried over. No transcripts, client configuration, or employer knowledge is included. The historical 26-skill collection and queue automation are deliberately outside this bootstrap.
+
+Unlike the original Mac recipe, Python and executable paths are resolved locally. Installations append a delimited block to the chosen agent homes and preserve content outside it. Skills are installed only when absent or identical; conflicts stop before any writes. Reinstallation updates only the managed instruction block and harness runtime. Backups precede changed existing files. Hook configuration is optional and additive. No login services are installed automatically.
+
+Default launchers inherit CODEX_HOME, CLAUDE_CONFIG_DIR, and ORCA_* unchanged. They add the common instruction block to a runtime home when Orca selects one, using a file lock. Job-specific setups should use separate client homes and a separate install prefix; explicitly select both homes before launching. The installer never copies authentication between homes.
+
+Headroom is optional and launched through its upstream `wrap` command. The local reference baseline was Codex 0.155.1, Claude Code 2.1.278, Headroom 0.37.0, RTK 0.49.0. New releases need a fresh smoke check; this repository does not promise compatibility with every future release. macOS is the locally tested platform. Linux/WSL2 use the same POSIX implementation but require validation on the target machine. Native Windows is not supported by the lock/launcher implementation; use WSL2.
