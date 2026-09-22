@@ -4,13 +4,13 @@ import argparse
 import json
 import os
 from pathlib import Path
-import shlex
 import shutil
 import sys
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / 'runtime'))
 from common import instructions, merge, write
+from platform_support import WINDOWS, find_agent, launcher_content
 
 
 def path(value):
@@ -27,10 +27,12 @@ def install(args):
     if vault and not (vault / 'INDEX.md').is_file():
         raise ValueError('Selected vault must exist and contain INDEX.md; finish syncing first')
     if args.optimizers:
+        if WINDOWS:
+            raise ValueError('Native Windows supports the core harness. Use WSL2 for --optimizers; no files were changed.')
         for tool in ('headroom', 'rtk'):
             if not shutil.which(tool):
                 raise ValueError(f'Install {tool} before enabling --optimizers; see docs/setup.md')
-    body = (ROOT / 'templates/core.md').read_text()
+    body = (ROOT / 'templates/core.md').read_text(encoding='utf-8')
     body += f'\n## This machine\n\nProject root: `{workspace}`.\n'
     body += (f'Active knowledge vault: `{vault}`. Read its INDEX.md before relevant research.\n' if vault
              else 'No knowledge vault configured. Use repository context; ask for missing personal context when needed.\n')
@@ -40,11 +42,11 @@ def install(args):
     for agent, home in homes.items():
         filename = 'AGENTS.md' if agent == 'codex' else 'CLAUDE.md'
         target = home / filename
-        planned[target] = merge(target.read_text() if target.exists() else '', body)
+        planned[target] = merge(target.read_text(encoding='utf-8') if target.exists() else '', body)
         for source in (ROOT / 'skills').rglob('*.md'):
             target = home / 'skills' / source.relative_to(ROOT / 'skills')
-            content = source.read_text()
-            if target.exists() and target.read_text() != content:
+            content = source.read_text(encoding='utf-8')
+            if target.exists() and target.read_text(encoding='utf-8') != content:
                 raise ValueError(f'Existing skill differs: {target}. Review/merge it before reinstalling.')
             planned[target] = content
         if args.optimizers:
@@ -52,21 +54,21 @@ def install(args):
             if settings.is_symlink():
                 raise ValueError(f'Refusing symlink: {settings}')
             if settings.exists():
-                data = json.loads(settings.read_text())
+                data = json.loads(settings.read_text(encoding='utf-8'))
                 groups = data.get('hooks', {}).get('PreToolUse', [])
                 if not isinstance(groups, list) or any(not isinstance(g, dict) or not isinstance(g.get('hooks', []), list) or any(not isinstance(h, dict) for h in g.get('hooks', [])) for g in groups):
                     raise ValueError(f'Unexpected hook schema: {settings}')
     for source in (ROOT / 'runtime').glob('*.py'):
-        planned[runtime / source.name] = source.read_text()
+        planned[runtime / source.name] = source.read_text(encoding='utf-8')
     for source in (ROOT / 'skills').rglob('*.md'):
-        planned[runtime / 'skills' / source.relative_to(ROOT / 'skills')] = source.read_text()
+        planned[runtime / 'skills' / source.relative_to(ROOT / 'skills')] = source.read_text(encoding='utf-8')
     cfg = {'instructions': body, 'workspace': str(workspace), 'vault': str(vault) if vault else None,
            'optimizers': args.optimizers, 'port': args.port,
            **{agent + '_home': str(home) for agent, home in homes.items()}}
     planned[runtime / 'machine.json'] = json.dumps(cfg, indent=2) + '\n'
     for agent in homes:
-        command = shlex.join([sys.executable, str(runtime / 'launch.py'), agent])
-        planned[prefix / 'bin' / ('sudarshan-' + agent)] = '#!/bin/sh\nexec ' + command + ' "$@"\n'
+        suffix = '.ps1' if WINDOWS else ''
+        planned[prefix / 'bin' / ('sudarshan-' + agent + suffix)] = launcher_content(sys.executable, runtime / 'launch.py', agent)
     for target in planned:
         if target.is_symlink():
             raise ValueError(f'Refusing to replace symlink: {target}')
@@ -91,14 +93,20 @@ def doctor(args):
     if not config.exists():
         print('MISSING installation; run install first')
         return 1
-    cfg = json.loads(config.read_text())
-    checks = {tool + ' on PATH': bool(shutil.which(tool)) for tool in ('git', 'codex', 'claude')}
+    cfg = json.loads(config.read_text(encoding='utf-8'))
+    checks = {tool + ' on PATH': bool(find_agent(tool)) for tool in ('git', 'codex', 'claude')}
+    if WINDOWS:
+        checks['PowerShell 7 on PATH'] = bool(shutil.which('pwsh'))
+        for agent in ('codex', 'claude'):
+            binary = find_agent(agent)
+            checks[agent + ' native executable or PowerShell shim'] = bool(binary and Path(binary).suffix.lower() in ('.exe', '.ps1'))
     checks['workspace exists'] = Path(cfg['workspace']).is_dir()
     for agent, name in [('codex', 'AGENTS.md'), ('claude', 'CLAUDE.md')]:
         home = Path(cfg[agent + '_home'])
         p = home / name
-        checks[agent + ' instructions'] = p.exists() and cfg['instructions'].strip() in p.read_text()
-        checks[agent + ' launcher'] = os.access(prefix / 'bin' / ('sudarshan-' + agent), os.X_OK)
+        checks[agent + ' instructions'] = p.exists() and cfg['instructions'].strip() in p.read_text(encoding='utf-8')
+        launcher = prefix / 'bin' / ('sudarshan-' + agent + ('.ps1' if WINDOWS else ''))
+        checks[agent + ' launcher'] = launcher.is_file() if WINDOWS else os.access(launcher, os.X_OK)
         checks[agent + ' reviewed skills'] = all((home / 'skills' / p.relative_to(ROOT / 'skills')).exists() and (home / 'skills' / p.relative_to(ROOT / 'skills')).read_bytes() == p.read_bytes() for p in (ROOT / 'skills').rglob('*.md'))
     if cfg['vault']:
         checks['vault INDEX.md'] = (Path(cfg['vault']) / 'INDEX.md').is_file()

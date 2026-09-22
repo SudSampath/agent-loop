@@ -10,7 +10,7 @@ npm install -g @openai/codex
 brew install --cask claude-code
 ```
 
-On Linux or WSL2, install Git, GitHub CLI, Python 3.10+, and a supported Node LTS using your distribution/organization's package management. Install Codex using `npm install -g @openai/codex`. Use the native Linux installer from the official Claude setup page. Native Windows users should run this harness inside WSL2 and install all these tools inside WSL2 as well.
+On Linux or WSL2, install Git, GitHub CLI, Python 3.10+, and a supported Node LTS using your distribution/organization's package management. Install Codex using `npm install -g @openai/codex`. Use the native Linux installer from the official Claude setup page. Native Windows users can instead follow [the PowerShell setup](windows.md), with no WSL requirement.
 
 Check `python3 --version`, `git --version`, `gh --version`, `codex --version`, and `claude --version`. Open `codex` and `claude` directly and complete their login flows with the intended account. On a managed work machine, use the organization's approved provider and installation method.
 
@@ -30,7 +30,7 @@ python3 bootstrap.py install --workspace "$HOME/Projects" --vault "$HOME/Documen
 
 The repository's reviewed skills remain its portable snapshot. Changes to vault skill definitions are not automatically imported. Review and synchronize intentional updates into this repository, then reinstall. Context such as profile and voice remains in the selected vault.
 
-## 3. Optional optimizers
+## 3. Optional optimizers (macOS/Linux/WSL2)
 
 The reference Mac used Headroom 0.37.0 and RTK 0.49.0. To reproduce that Headroom baseline:
 

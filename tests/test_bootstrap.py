@@ -2,11 +2,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+WINDOWS = os.name == 'nt'
 
 
 class BootstrapTests(unittest.TestCase):
@@ -26,12 +28,20 @@ class BootstrapTests(unittest.TestCase):
             p = self.bin / name
             p.write_text('#!' + sys.executable + '\nimport os,sys,json\nprint(json.dumps({"args":sys.argv[1:],"codex_home":os.getenv("CODEX_HOME"),"orca":os.getenv("ORCA_TEST")}))\n')
             p.chmod(0o700)
+            if WINDOWS:
+                shim = self.bin / (name + '.ps1')
+                quote = lambda value: "'" + str(value).replace("'", "''") + "'"
+                shim.write_text("$PSNativeCommandArgumentPassing = 'Standard'\n& " + quote(sys.executable) + ' ' + quote(p) + ' @args\nexit $LASTEXITCODE\n', encoding='utf-8')
+
+    def launcher(self, agent):
+        p = self.prefix / 'bin' / ('sudarshan-' + agent + ('.ps1' if WINDOWS else ''))
+        return [shutil.which('pwsh'), '-NoProfile', '-File', str(p)] if WINDOWS else [str(p)]
 
     def install(self, *extra, ok=True):
         result = subprocess.run([sys.executable, str(ROOT / 'bootstrap.py'), 'install',
             '--workspace', str(self.base), '--prefix', str(self.prefix),
             '--codex-home', str(self.codex), '--claude-home', str(self.claude), *extra],
-            capture_output=True, text=True, env=self.env)
+            capture_output=True, text=True, encoding='utf-8', env=self.env)
         self.assertEqual(result.returncode, 0 if ok else 1, result.stderr)
         return result
 
@@ -64,8 +74,8 @@ class BootstrapTests(unittest.TestCase):
         self.install()
         active = self.base / 'orca runtime'
         env = dict(self.env, CODEX_HOME=str(active), ORCA_TEST='preserve')
-        result = subprocess.run([str(self.prefix / 'bin/sudarshan-codex'), 'a prompt with spaces', '--search'],
-                                env=env, capture_output=True, text=True, check=True)
+        result = subprocess.run([*self.launcher('codex'), 'a prompt with spaces', '--search'],
+                                env=env, capture_output=True, text=True, encoding='utf-8', check=True)
         out = json.loads(result.stdout)
         self.assertEqual(out['args'], ['a prompt with spaces', '--search'])
         self.assertEqual(out['orca'], 'preserve')
@@ -77,10 +87,11 @@ class BootstrapTests(unittest.TestCase):
         """Given a fresh runtime home, when help is requested, then no configuration is created."""
         self.install()
         active = self.base / 'unused'
-        subprocess.run([str(self.prefix / 'bin/sudarshan-codex'), '--help'],
+        subprocess.run([*self.launcher('codex'), '--help'],
                        env=dict(self.env, CODEX_HOME=str(active)), capture_output=True, check=True)
         self.assertFalse(active.exists())
 
+    @unittest.skipIf(WINDOWS, 'Optional POSIX optimizer integration')
     def test_optional_hooks_preserve_orca_and_do_not_duplicate(self):
         """Given Orca hooks, when optimizers are installed twice, then keep them and add only one RTK hook."""
         self.codex.mkdir()
@@ -94,8 +105,8 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(data['hooks']['Stop'], old['hooks']['Stop'])
         self.assertEqual(data['hooks']['PreToolUse'][0], old['hooks']['PreToolUse'][0])
         self.assertEqual(len(data['hooks']['PreToolUse']), 2)
-        result = subprocess.run([str(self.prefix / 'bin/sudarshan-claude'), 'hello'], env=self.env,
-                                capture_output=True, text=True, check=True)
+        result = subprocess.run([*self.launcher('claude'), 'hello'], env=self.env,
+                                capture_output=True, text=True, encoding='utf-8', check=True)
         self.assertEqual(json.loads(result.stdout)['args'], ['wrap', 'claude', '--port', '8787', '--code-memory', 'none', '--', 'hello'])
 
     def test_invalid_vault_and_malformed_block(self):
@@ -110,27 +121,29 @@ class BootstrapTests(unittest.TestCase):
         """Given a complete local fixture, when doctor runs, then report success without authentication claims."""
         self.install()
         result = subprocess.run([sys.executable, str(ROOT / 'bootstrap.py'), 'doctor', '--prefix', str(self.prefix)],
-                                env=self.env, capture_output=True, text=True)
+                                env=self.env, capture_output=True, text=True, encoding='utf-8')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('require the live smoke checks', result.stdout)
 
     def test_hook_passes_through_bad_input(self):
         """Given malformed hook input, when adapter runs, then leave normal tool execution usable."""
         result = subprocess.run([sys.executable, str(ROOT / 'runtime/rtk_hook.py')], input='not json',
-                                capture_output=True, text=True, env=self.env)
+                                capture_output=True, text=True, encoding='utf-8', env=self.env)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, '')
 
+    @unittest.skipIf(WINDOWS, 'Optional POSIX optimizer integration')
     def test_hook_rewrite_preserves_other_tool_fields(self):
         """Given a recognized command, when RTK rewrites it, then preserve unrelated tool input."""
         (self.bin / 'rtk').write_text('#!/bin/sh\nprintf "rtk git status\\n"\nexit 3\n')
         event = {'hook_event_name': 'PreToolUse', 'tool_name': 'Bash',
                  'tool_input': {'command': 'git status', 'timeout_ms': 1000}}
         result = subprocess.run([sys.executable, str(ROOT / 'runtime/rtk_hook.py')], input=json.dumps(event),
-                                capture_output=True, text=True, env=self.env, check=True)
+                                capture_output=True, text=True, encoding='utf-8', env=self.env, check=True)
         output = json.loads(result.stdout)['hookSpecificOutput']
         self.assertEqual(output['updatedInput'], {'command': 'rtk git status', 'timeout_ms': 1000})
 
+    @unittest.skipIf(WINDOWS, 'Optional POSIX optimizer integration')
     def test_invalid_hook_config_stops_before_install(self):
         """Given malformed existing hook configuration, when installing, then preserve it and stop."""
         self.codex.mkdir()

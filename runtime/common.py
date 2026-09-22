@@ -1,8 +1,8 @@
 import datetime
-import fcntl
 import os
 from pathlib import Path
 import tempfile
+from platform_support import file_lock
 
 START = '<!-- sudarshan-agent-loop:start -->'
 END = '<!-- sudarshan-agent-loop:end -->'
@@ -23,7 +23,7 @@ def write(path, content, executable=False):
     path = Path(path)
     if path.is_symlink():
         raise ValueError(f'Refusing to replace symlink: {path}')
-    if path.exists() and path.read_text() == content:
+    if path.exists() and path.read_text(encoding='utf-8') == content:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
@@ -33,7 +33,7 @@ def write(path, content, executable=False):
         backup.chmod(0o600)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix='.agent-loop-')
     try:
-        with os.fdopen(fd, 'w') as f:
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='\n') as f:
             f.write(content)
         os.chmod(tmp, 0o700 if executable else 0o600)
         os.replace(tmp, path)
@@ -45,7 +45,6 @@ def write(path, content, executable=False):
 def instructions(home, filename, body):
     home = Path(home)
     home.mkdir(parents=True, exist_ok=True)
-    with (home / '.agent-loop.lock').open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+    with file_lock(home / '.agent-loop.lock'):
         p = home / filename
-        write(p, merge(p.read_text() if p.exists() else '', body))
+        write(p, merge(p.read_text(encoding='utf-8') if p.exists() else '', body))

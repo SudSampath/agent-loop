@@ -6,7 +6,7 @@ The loop is **orient → define completion → implement → verify → hand off
 
 ## Start on a new computer
 
-Requires Git, Python 3.10+, and authenticated Codex and Claude Code CLIs. Use macOS, Linux, or WSL2. [Full setup instructions](docs/setup.md) include prerequisite installation and the optional Headroom/RTK/Orca layer.
+Requires Git, Python 3.10+, and authenticated Codex and Claude Code CLIs. Supports macOS, Linux, native Windows (PowerShell 7.4+), and WSL2. [Native Windows setup](docs/windows.md) uses `install.ps1`; the commands below are for macOS/Linux/WSL2. [Full setup instructions](docs/setup.md) include the optional POSIX Headroom/RTK/Orca layer.
 
 ```sh
 gh auth login
