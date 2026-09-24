@@ -133,8 +133,17 @@ def main():
     p.add_argument('--dry-run', action='store_true')
     p = sub.add_parser('doctor')
     p.add_argument('--prefix', default='~/.local')
+    p = sub.add_parser('orca-shell', help='Route bare agent commands in Orca Bash/Zsh terminals through wrappers')
+    p.add_argument('--prefix', default='~/.local')
+    p.add_argument('--rc', action='append', required=True, help='Bash/Zsh startup file; repeat for multiple files')
+    p.add_argument('--codex-launcher', help='Existing Codex wrapper (default: PREFIX/bin/sudarshan-codex)')
+    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
+    p.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     try:
+        if args.command == 'orca-shell':
+            from orca_shell import install as install_orca_shell
+            return install_orca_shell(args)
         return install(args) if args.command == 'install' else doctor(args)
     except (ValueError, OSError, TypeError, AttributeError) as error:
         print(f'Error: {error}', file=sys.stderr)

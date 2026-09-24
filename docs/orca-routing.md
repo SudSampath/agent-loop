@@ -1,0 +1,9 @@
+# Orca terminal routing investigation — 2026-09-24
+
+The affected session had process ancestry `Orca Helper → login → zsh → codex`, without a Headroom wrapper parent or `OPENAI_BASE_URL` in the tool environment. Its saved tab was an ordinary terminal tab without an agent launch configuration. Orca's saved Codex and Claude Command overrides still pointed to the optimizer wrappers. Headroom was running and processing other traffic. This was a launch-path gap, not evidence of a proxy daemon failure.
+
+Read-only inspection of installed Orca 1.4.206 launch code showed agent launch plans consulting `agentCmdOverrides`. Those settings do not replace command resolution inside an ordinary shell. There was no agent routing in the machine's shell startup files. The evidence does not identify the historical action that started the bare command or establish that an Orca update introduced a regression. The affected tab was the workspace terminal; its ancestry alone does not establish a worktree-creation bug.
+
+`bootstrap.py orca-shell` adds an opt-in managed Bash/Zsh startup block routing bare agent commands inside Orca through existing wrappers. It applies independently of repository and worktree paths, preserves environment and argument boundaries, and leaves external shells unchanged. It does not replace binaries, Orca state, proxy services, authentication, or trust configuration.
+
+Regression tests create a real temporary Git worktree and invoke bare Codex and Claude from Bash and Zsh when available. Synthetic executables verify Headroom arguments, injected runtime homes, and additive RTK registration alongside an existing Orca hook. Additional checks cover external shells, help without mutations, missing wrappers, repeated installs, backups, preview, malformed blocks, and symlink refusal. No paid sessions run in tests. Actual inference routing and trusted RTK tool execution remain live smoke checks; wrapper dispatch alone does not prove token savings.

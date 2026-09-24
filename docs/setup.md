@@ -57,6 +57,34 @@ Install Orca separately. In Settings → Agents → Command overrides, select th
 
 Orca may supply a separate CODEX_HOME. The launcher adds its managed instructions and reviewed skills there at launch. Authentication and other Orca-managed configuration remain Orca's responsibility. Different jobs should use different Orca profiles or OS accounts; do not route a personal-vault launcher into a work profile.
 
+### Cover plain terminals in new worktrees
+
+Command overrides cover Orca's agent launch actions. An ordinary terminal can still start bare `codex` or `claude`, including in a newly created worktree or a restored shell. Worktree creation alone does not activate Headroom.
+
+After installing with `--optimizers`, add the opt-in Bash/Zsh safeguard:
+
+```sh
+python3 bootstrap.py orca-shell --rc "$HOME/.zshrc" --dry-run
+python3 bootstrap.py orca-shell --rc "$HOME/.zshrc"
+```
+
+For Bash, choose the startup file your Orca shells actually read (`~/.bashrc`, and `~/.bash_profile` for login shells if it does not source `.bashrc`). Repeat `--rc` for multiple files. The command previews or backs up and appends a managed block, preserves existing content, and refuses symlinks. It does not edit Orca's live settings or replace CLI binaries. Keep the Command overrides above as well.
+
+The block defines `codex` and `claude` functions only in shells carrying Orca's workspace/worktree/tab environment. They forward literal arguments to the named wrappers, preserving active agent homes and Orca hooks. External shells keep their original commands. Headroom invokes external binaries through PATH, avoiding function recursion. Missing wrappers fail visibly. Aliases, `command codex`, absolute binary paths, and noninteractive commands that do not read the startup files can bypass this safeguard.
+
+An existing optimizer setup can use its own wrappers without reinstalling the full harness:
+
+```sh
+python3 bootstrap.py orca-shell --rc "$HOME/.zshrc" \
+  --codex-launcher "$HOME/.local/bin/orca-codex" \
+  --claude-launcher "$HOME/.local/bin/orca-claude" --dry-run
+# Inspect the preview, then repeat without --dry-run.
+```
+
+Explicit wrappers must already configure Headroom and RTK; executable presence alone cannot prove that. Default harness wrappers require optimizers enabled. Open a new terminal after installing: existing shells and running agents do not acquire routing automatically. To roll back, remove only the `sudarshan-agent-loop Orca routing` block and open another terminal.
+
+Verify in a fresh disposable worktree: `type codex` and `type claude` should report functions; `codex --version` should return directly without starting optimizers. On the next normal agent launch, verify its Headroom parent/routing arguments, RTK configuration in the active home, and a rewritten tool call. Proxy health and model-list requests alone do not prove inference routing. See [the investigation](orca-routing.md).
+
 ## 5. Verify in a real session
 
 ```sh

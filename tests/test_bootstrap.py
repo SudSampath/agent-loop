@@ -153,6 +153,100 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(p.read_text(), '{broken')
         self.assertFalse(self.prefix.exists())
 
+    def orca_shell(self, *extra, ok=True):
+        result = subprocess.run([sys.executable, str(ROOT / 'bootstrap.py'), 'orca-shell',
+            '--prefix', str(self.prefix), '--rc', str(self.base / 'shell rc'), *extra],
+            capture_output=True, text=True, env=self.env)
+        self.assertEqual(result.returncode, 0 if ok else 1, result.stderr)
+        return result
+
+    @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
+    def test_orca_worktree_shell_routes_through_optimizers(self):
+        """Given a new Git worktree in Orca, when bare agents start, then wrap them and retain RTK and Orca hooks."""
+        self.install('--optimizers')
+        self.orca_shell()
+        repo, worktree = self.base / 'repo', self.base / 'new worktree'
+        subprocess.run(['git', 'init', str(repo)], capture_output=True, check=True)
+        subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture', '-c',
+                        'user.email=fixture@example.invalid', 'commit', '--allow-empty', '-m', 'fixture'],
+                       capture_output=True, check=True)
+        subprocess.run(['git', '-C', str(repo), 'worktree', 'add', '-b', 'fixture', str(worktree)],
+                       capture_output=True, check=True)
+        active = self.base / 'active runtime'
+        active.mkdir()
+        old = {'hooks': {'PreToolUse': [{'matcher': 'Bash', 'hooks': [{'command': 'orca-tool'}]}]}}
+        (active / 'hooks.json').write_text(json.dumps(old))
+        shells = [shutil.which(name) for name in ('bash', 'zsh') if shutil.which(name)]
+        self.assertTrue(shells)
+        import shlex
+        rc = shlex.quote(str(self.base / 'shell rc'))
+        prompt = 'spaces; $(never-execute) "quotes"'
+        for shell in shells:
+            for agent in ('codex', 'claude'):
+                with self.subTest(shell=shell, agent=agent):
+                    env = dict(self.env, ORCA_WORKTREE_ID=str(worktree), ORCA_TEST='preserve',
+                               CODEX_HOME=str(active), CLAUDE_CONFIG_DIR=str(active))
+                    result = subprocess.run([shell, '-c', f'. {rc}; {agent} "$1"', 'fixture', prompt],
+                                            cwd=worktree, env=env, capture_output=True, text=True, check=True)
+                    out = json.loads(result.stdout)
+                    self.assertEqual(out['args'], ['wrap', agent, '--port', '8787', '--code-memory', 'none', '--', prompt])
+                    self.assertEqual(out['orca'], 'preserve')
+                    self.assertEqual(out['codex_home'], str(active))
+        hooks = json.loads((active / 'hooks.json').read_text())['hooks']['PreToolUse']
+        self.assertEqual(hooks[0], old['hooks']['PreToolUse'][0])
+        self.assertEqual(len(hooks), 2)
+        self.assertIn('rtk_hook.py', hooks[1]['hooks'][0]['command'])
+
+    @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
+    def test_orca_shell_preserves_external_shell_and_help(self):
+        """Given shell routing, when outside Orca or requesting help, then avoid optimizer startup and home mutations."""
+        self.install('--optimizers')
+        self.orca_shell()
+        import shlex
+        rc = shlex.quote(str(self.base / 'shell rc'))
+        env = {k: v for k, v in self.env.items() if not k.startswith('ORCA_')}
+        unused = self.base / 'unused runtime'
+        env['CODEX_HOME'] = str(unused)
+        for shell in filter(None, (shutil.which('bash'), shutil.which('zsh'))):
+            for marker, arg in [({}, 'hello'), ({'ORCA_TAB_ID': 'fixture'}, '--help')]:
+                result = subprocess.run([shell, '-c', f'. {rc}; codex "$1"', 'fixture', arg],
+                                        env=dict(env, **marker), capture_output=True, text=True, check=True)
+                self.assertEqual(json.loads(result.stdout)['args'], [arg])
+                self.assertFalse(unused.exists())
+            launcher = self.prefix / 'bin/sudarshan-codex'
+            content = launcher.read_bytes()
+            launcher.unlink()
+            result = subprocess.run([shell, '-c', f'. {rc}; codex hello'],
+                                    env=dict(env, ORCA_TAB_ID='fixture'), capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)  # Never silently fall back to an unwrapped launch.
+            self.assertEqual(result.stdout, '')
+            launcher.write_bytes(content)
+            launcher.chmod(0o700)
+
+    @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
+    def test_orca_shell_preview_preservation_and_validation(self):
+        """Given existing startup files, when routing is installed, then preview safely, preserve content, and validate all files first."""
+        self.install('--optimizers')
+        rc = self.base / 'shell rc'
+        rc.write_text('# existing startup\nexport KEEP=unchanged\n')
+        before = rc.read_bytes()
+        self.orca_shell('--dry-run')
+        self.assertEqual(rc.read_bytes(), before)
+        self.orca_shell()
+        first = rc.read_bytes()
+        self.orca_shell()
+        self.assertEqual(rc.read_bytes(), first)
+        self.assertTrue(first.startswith(before))
+        self.assertEqual(len(list(self.base.glob('shell rc.agent-loop-backup-*'))), 1)
+        malformed = self.base / 'broken rc'
+        malformed.write_text('# >>> sudarshan-agent-loop Orca routing >>>')
+        self.orca_shell('--rc', str(malformed), ok=False)
+        self.assertEqual(rc.read_bytes(), first)
+        self.orca_shell('--codex-launcher', str(self.bin / 'codex'), ok=False)
+        link = self.base / 'rc link'
+        link.symlink_to(rc)
+        self.orca_shell('--rc', str(link), ok=False)
+
 
 if __name__ == '__main__':
     unittest.main()
