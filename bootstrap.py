@@ -138,6 +138,8 @@ def main():
     p.add_argument('--rc', action='append', required=True, help='Bash/Zsh startup file; repeat for multiple files')
     p.add_argument('--codex-launcher', help='Existing Codex wrapper (default: PREFIX/bin/sudarshan-codex)')
     p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
+    p.add_argument('--skip-permissions', action='store_true',
+                   help='Start routed agents with approval prompts (and the Codex sandbox) bypassed')
     p.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     try:

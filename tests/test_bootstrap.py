@@ -224,6 +224,27 @@ class BootstrapTests(unittest.TestCase):
             launcher.chmod(0o700)
 
     @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
+    def test_orca_shell_skip_permissions_is_opt_in_and_keeps_help_direct(self):
+        """Given routing with --skip-permissions, when agents start in Orca, then bypass approvals but not for help or external shells."""
+        self.install('--optimizers')
+        self.orca_shell('--skip-permissions')
+        import shlex
+        rc = shlex.quote(str(self.base / 'shell rc'))
+        env = {k: v for k, v in self.env.items() if not k.startswith('ORCA_')}
+        for shell in filter(None, (shutil.which('bash'), shutil.which('zsh'))):
+            for agent, flag in [('codex', '--dangerously-bypass-approvals-and-sandbox'),
+                                ('claude', '--dangerously-skip-permissions')]:
+                with self.subTest(shell=shell, agent=agent):
+                    run = lambda marker, arg: json.loads(subprocess.run(
+                        [shell, '-c', f'. {rc}; {agent} "$1"', 'fixture', arg], env=dict(env, **marker),
+                        capture_output=True, text=True, check=True).stdout)['args']
+                    self.assertEqual(run({'ORCA_TAB_ID': 'fixture'}, 'a b')[-3:], ['--', flag, 'a b'])
+                    self.assertEqual(run({'ORCA_TAB_ID': 'fixture'}, '--version'), ['--version'])
+                    self.assertEqual(run({}, 'a b'), ['a b'])
+        self.orca_shell()
+        self.assertNotIn('dangerously', (self.base / 'shell rc').read_text())
+
+    @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
     def test_orca_shell_preview_preservation_and_validation(self):
         """Given existing startup files, when routing is installed, then preview safely, preserve content, and validate all files first."""
         self.install('--optimizers')

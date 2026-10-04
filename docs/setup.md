@@ -41,7 +41,7 @@ uv tool install --python 3.12 'headroom-ai[proxy]==0.37.0'
 
 On Linux/WSL2 install uv and RTK from their upstream instructions, then use the same uv command. Homebrew installs the available RTK version; confirm its `rewrite` and `hook claude` commands remain compatible before enabling. Upstream: [Headroom](https://github.com/headroomlabs-ai/headroom), [RTK](https://github.com/rtk-ai/rtk).
 
-Rerun installation with `--optimizers` (and your vault/path options). The launchers use `headroom wrap` on demand; no separate service is required for this mode. They add RTK hooks alongside existing hooks, or retain an existing RTK integration. Codex may ask to trust the new hook; review it interactively. The installer never adds permission-bypass flags or hook-trust hashes. The Codex adapter's `allow` response is required by the locally tested rewrite contract; native approval and sandbox checks still apply to the rewritten command. Rewriting can affect command classification, so inspect approval prompts normally.
+Rerun installation with `--optimizers` (and your vault/path options). The launchers use `headroom wrap` on demand; no separate service is required for this mode. They add RTK hooks alongside existing hooks, or retain an existing RTK integration. Codex may ask to trust the new hook; review it interactively. The installer never adds permission-bypass flags or hook-trust hashes; only the opt-in `orca-shell --skip-permissions` below adds bypass flags. The Codex adapter's `allow` response is required by the locally tested rewrite contract; native approval and sandbox checks still apply to the rewritten command. Rewriting can affect command classification, so inspect approval prompts normally.
 
 For an optional persistent macOS proxy, explicitly run:
 
@@ -53,7 +53,7 @@ This is a separate operator step that creates a login service. Do not run it if 
 
 ## 4. Orca
 
-Install Orca separately. In Settings → Agents → Command overrides, select the full printed paths to `sudarshan-codex` and `sudarshan-claude`. Make sure the Orca process PATH includes the real agent binaries plus Headroom/RTK if enabled; restart the app after changing PATH. Do not edit Orca's live state JSON. Keep its existing managed environment and hooks. Review Default args separately; this harness does not add bypass flags.
+Install Orca separately. In Settings → Agents → Command overrides, select the full printed paths to `sudarshan-codex` and `sudarshan-claude`. Make sure the Orca process PATH includes the real agent binaries plus Headroom/RTK if enabled; restart the app after changing PATH. Do not edit Orca's live state JSON. Keep its existing managed environment and hooks. Review Default args separately; Command overrides launched by Orca itself never receive bypass flags from this harness.
 
 Orca may supply a separate CODEX_HOME. The launcher adds its managed instructions and reviewed skills there at launch. Authentication and other Orca-managed configuration remain Orca's responsibility. Different jobs should use different Orca profiles or OS accounts; do not route a personal-vault launcher into a work profile.
 
@@ -71,6 +71,8 @@ python3 bootstrap.py orca-shell --rc "$HOME/.zshrc"
 For Bash, choose the startup file your Orca shells actually read (`~/.bashrc`, and `~/.bash_profile` for login shells if it does not source `.bashrc`). Repeat `--rc` for multiple files. The command previews or backs up and appends a managed block, preserves existing content, and refuses symlinks. It does not edit Orca's live settings or replace CLI binaries. Keep the Command overrides above as well.
 
 The block defines `codex` and `claude` functions only in shells carrying Orca's workspace/worktree/tab environment. They forward literal arguments to the named wrappers, preserving active agent homes and Orca hooks. External shells keep their original commands. Headroom invokes external binaries through PATH, avoiding function recursion. Missing wrappers fail visibly. Aliases, `command codex`, absolute binary paths, and noninteractive commands that do not read the startup files can bypass this safeguard.
+
+Add `--skip-permissions` to start routed agents without approval prompts: Codex receives `--dangerously-bypass-approvals-and-sandbox` (which also disables its sandbox) and Claude receives `--dangerously-skip-permissions`. Version/help requests and shells outside Orca stay unchanged. Use it only in worktrees you are prepared to let agents modify freely. Rerunning `orca-shell` without the flag removes it.
 
 An existing optimizer setup can use its own wrappers without reinstalling the full harness:
 

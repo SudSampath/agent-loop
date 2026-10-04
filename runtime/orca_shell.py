@@ -10,18 +10,25 @@ from platform_support import WINDOWS
 START = '# >>> sudarshan-agent-loop Orca routing >>>'
 END = '# <<< sudarshan-agent-loop Orca routing <<<'
 ORCA = '${ORCA_WORKTREE_ID:-}${ORCA_WORKSPACE_ID:-}${ORCA_TAB_ID:-}'
+BYPASS = {'codex': '--dangerously-bypass-approvals-and-sandbox', 'claude': '--dangerously-skip-permissions'}
 
 
-def routing_block(launchers):
+def routing_block(launchers, skip_permissions=False):
     lines = [START, '# Bash/Zsh only. Keep external terminals and agent binaries unchanged.',
              f'if [ -n "{ORCA}" ]; then']
     for agent, launcher in launchers.items():
+        quoted = shlex.quote(str(launcher))
         # The function keyword avoids alias expansion while parsing a definition.
         # Headroom invokes the real executable through PATH, not these functions.
-        lines += [f'  function {agent} {{',
-                  f'    if [ -n "{ORCA}" ]; then',
-                  f'      command {shlex.quote(str(launcher))} "$@"',
-                  '    else', f'      command {agent} "$@"', '    fi', '  }']
+        lines += [f'  function {agent} {{', f'    if [ -n "{ORCA}" ]; then']
+        if skip_permissions:
+            # Version/help must stay first so wrappers pass them through without optimizers.
+            lines += ['      case "${1:-}" in',
+                      f'        --version|-V|--help|-h) command {quoted} "$@" ;;',
+                      f'        *) command {quoted} {BYPASS[agent]} "$@" ;;', '      esac']
+        else:
+            lines += [f'      command {quoted} "$@"']
+        lines += ['    else', f'      command {agent} "$@"', '    fi', '  }']
     return '\n'.join([*lines, 'fi', END]) + '\n'
 
 
@@ -53,7 +60,7 @@ def install(args):
         if launcher.name == agent:
             raise ValueError(f'Select a named wrapper, not bare {agent}: {launcher}')
         launchers[agent] = launcher
-    block = routing_block(launchers)
+    block = routing_block(launchers, args.skip_permissions)
     planned = {}
     for value in args.rc:
         target = Path(value).expanduser().absolute()
@@ -68,3 +75,5 @@ def install(args):
     print(block, end='')
     print('Open a new Orca terminal after installing. Existing shells and running agents are unchanged.')
     print('Verify type codex and type claude there; aliases or explicit binary paths can bypass this routing.')
+    if args.skip_permissions:
+        print('Warning: Orca agents now skip approval prompts; Codex also runs without its sandbox.')
