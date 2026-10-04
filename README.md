@@ -1,6 +1,6 @@
 # Sudarshan's Agent Loop
 
-Clone this private repository to bring the same working habits, six reviewed skills, and Codex/Claude launchers to a new computer or job. It packages the useful parts of my Obsidian setup into a repeatable installation.
+Clone this private repository to bring the same working habits, seven reviewed skills, and Codex/Claude launchers to a new computer or job. It packages the useful parts of my Obsidian setup into a repeatable installation.
 
 The loop is **orient → define completion → implement → verify → hand off → retain durable lessons**. Codex and Claude run their own agent loops; this harness supplies shared context and continuity. It does not run an unattended queue.
 
@@ -28,7 +28,7 @@ To attach an Obsidian vault, finish syncing it and add `--vault "/path/to/your/v
 ## What comes with it
 
 - One shared set of working instructions, adapted to local paths for both clients.
-- PRD, GTM, tickets, organize, handoff, and dream skills, with portable references.
+- PRD, GTM, tickets, organize, handoff, dream, and follow-up check skills, with portable references.
 - Repeatable installer with preview, backups, conflict checks, and a doctor command.
 - Launchers that preserve Orca's injected environment and support its separate runtime home.
 - Optional Headroom proxy and additive RTK hooks.

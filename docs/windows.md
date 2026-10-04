@@ -1,6 +1,6 @@
 # Native Windows setup
 
-Use Windows and PowerShell directly. WSL is not required for the shared instructions, six skills, launchers, vault integration, backups, or doctor checks. The Headroom/RTK hook layer is currently available through macOS/Linux/WSL2 only; `--optimizers` on native Windows stops before writing files.
+Use Windows and PowerShell directly. WSL is not required for the shared instructions, seven skills, launchers, vault integration, backups, or doctor checks. The Headroom/RTK hook layer is currently available through macOS/Linux/WSL2 only; `--optimizers` on native Windows stops before writing files.
 
 ## Install prerequisites once
 
