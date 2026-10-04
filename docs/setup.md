@@ -93,7 +93,7 @@ sudarshan-codex --version
 sudarshan-claude --version
 ```
 
-Then open each agent in a disposable repository and ask: “List the instruction sources you loaded, the selected knowledge location, and the available Sudarshan skills. Read git status, make no changes, and report the result.” Verify both report the right paths and account context. Try a synthetic PRD outline to verify skill references. These live calls consume your normal agent usage.
+Then open each agent in a disposable repository and ask: “List the instruction sources you loaded, the selected knowledge location, and the available skills. Read git status, make no changes, and report the result.” Verify both report the right paths and account context. Try a synthetic PRD outline to verify skill references. These live calls consume your normal agent usage.
 
 If optimizers are enabled, check the proxy health at `http://127.0.0.1:8787/health` after a wrapped session starts. Check Headroom's logs/status and an actual tool invocation, not just binary presence. Bare CLI launches bypass Headroom. The original Mac runbook observed wrapped Claude Remote Control limitations and other custom-endpoint feature differences; use the bare CLI for features that require the normal endpoint.
 
