@@ -4,7 +4,7 @@
 2. **Define completion.** State the outcome, constraints, authorized actions, and observable acceptance criteria. For behavior work use Given/When/Then. Resolve only questions that block useful work.
 3. **Implement a small working path.** Use the existing stack and repository conventions. Let either Codex or Claude own a bounded task. If both work concurrently on overlapping code, create separate branches/worktrees and record ownership.
 4. **Verify the behavior.** Run relevant tests and exercise the core pipeline. Record results and uncertainty. Expand testing when failures or new changes warrant it.
-5. **Hand off or finish.** Use `sudarshan-handoff` or the template. Include exact next action and authorization scope. Review the diff; commit, push, or publish only when authorized. Verify remote state before claiming completion.
+5. **Hand off or finish.** Use `handoff` or the template. Include exact next action and authorization scope. Review the diff; commit, push, or publish only when authorized. Verify remote state before claiming completion.
 6. **Retain durable lessons.** Save supported decisions in the project's notes or selected vault and update its index. Keep transient state in the handoff. Do not turn raw transcripts into startup instructions.
 
 Example starting prompt:

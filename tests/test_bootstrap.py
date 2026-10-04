@@ -61,7 +61,7 @@ class BootstrapTests(unittest.TestCase):
         """Given preview or conflicting skills, when installing, then leave destinations untouched."""
         self.install('--dry-run')
         self.assertFalse(self.prefix.exists())
-        p = self.codex / 'skills/sudarshan-prd/SKILL.md'
+        p = self.codex / 'skills/draft-prd/SKILL.md'
         p.parent.mkdir(parents=True)
         p.write_text('Different local version')
         self.install(ok=False)
@@ -81,7 +81,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(out['orca'], 'preserve')
         self.assertEqual(out['codex_home'], str(active))
         self.assertTrue((active / 'AGENTS.md').exists())
-        self.assertTrue((active / 'skills/sudarshan-prd/SKILL.md').exists())
+        self.assertTrue((active / 'skills/draft-prd/SKILL.md').exists())
 
     def test_help_does_not_mutate_runtime(self):
         """Given a fresh runtime home, when help is requested, then no configuration is created."""

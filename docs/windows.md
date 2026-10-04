@@ -59,7 +59,7 @@ sudarshan-codex.ps1
 sudarshan-claude.ps1
 ```
 
-Sign in to the intended account in each client. Ask each agent to report loaded instructions, selected vault, and available Sudarshan skills, then read git status without changing anything. Verify a small synthetic PRD uses the intended skill. `doctor` verifies installation files and executable discovery, not authentication, interactive terminal behavior, or actual model loading.
+Sign in to the intended account in each client. Ask each agent to report loaded instructions, selected vault, and available skills, then read git status without changing anything. Verify a small synthetic PRD uses the intended skill. `doctor` verifies installation files and executable discovery, not authentication, interactive terminal behavior, or actual model loading.
 
 To invoke from an app that requires an executable, use `pwsh.exe` as the executable with arguments `-NoProfile -File "C:\full\path\sudarshan-codex.ps1"` (or the Claude equivalent). Native Windows Orca UI integration has not been verified; use terminal launchers unless the app supports separate executable/argument fields. Injected CODEX_HOME, CLAUDE_CONFIG_DIR, and ORCA_* values are preserved.
 

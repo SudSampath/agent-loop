@@ -1,13 +1,13 @@
 ---
-name: sudarshan-dream
+name: dream
 description: Review recent cross-tool activity, write a dream digest, archive stale memories, and draft new ones for review. Reads the vault, Claude Code memory, Claude and Codex session transcripts, and git activity. Use for manual Dream reviews or recovering what happened in either client.
 ---
 
-# sudarshan-dream
+# dream
 
 Look back over recent activity, find patterns, prune what has gone stale, and surface what is worth remembering. The output is one digest note plus reviewable memory changes.
 
-Resolve the vault from the active Sudarshan global/project loader and read its INDEX.md. If it is unavailable, ask for its location; do not fall back to an old employer vault. Below, `<vault>` is that path, `<projects>` is the configured project root, and `<claude>` / `<codex>` are the client homes (`CLAUDE_CONFIG_DIR` / `CODEX_HOME`, default `~/.claude` / `~/.codex`).
+Resolve the vault from the active global/project loader and read its INDEX.md. If it is unavailable, ask for its location; do not fall back to an old employer vault. Below, `<vault>` is that path, `<projects>` is the configured project root, and `<claude>` / `<codex>` are the client homes (`CLAUDE_CONFIG_DIR` / `CODEX_HOME`, default `~/.claude` / `~/.codex`).
 
 Arguments: blank (last 7 days), `--lookback Nd`, `--dry-run` (propose without moving files), `--unattended` (no prompts; flag ambiguity in the digest and move on).
 
@@ -70,7 +70,7 @@ Each bullet: what to do and why.
 ## Vault health
 ```
 
-Keep it skimmable. Write in Sudarshan's own terms; do not strengthen claims beyond the evidence.
+Keep it skimmable. Write in the user's own terms; do not strengthen claims beyond the evidence.
 
 ## 5. Archive stale memories
 
@@ -78,7 +78,7 @@ Move a memory to `<dir>/archive/` when it has no signal in the vault or any sess
 
 ## 6. Draft new memories
 
-For preferences confirmed twice, new systems to check, recurring project context, or new facts about role or tooling, write a draft into the most relevant memory dir's `drafts/`. Use the same frontmatter as a real memory, plus `status: draft`, `proposed_in: dream-YYYY-MM-DD`, and `proposed_reason`. Never promote a draft; Sudarshan does that.
+For preferences confirmed twice, new systems to check, recurring project context, or new facts about role or tooling, write a draft into the most relevant memory dir's `drafts/`. Use the same frontmatter as a real memory, plus `status: draft`, `proposed_in: dream-YYYY-MM-DD`, and `proposed_reason`. Never promote a draft; the user does that.
 
 ## 7. Vault health
 
