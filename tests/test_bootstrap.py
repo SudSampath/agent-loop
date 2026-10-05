@@ -247,6 +247,66 @@ class BootstrapTests(unittest.TestCase):
         link.symlink_to(rc)
         self.orca_shell('--rc', str(link), ok=False)
 
+    def dream_schedule(self, *extra, ok=True):
+        result = subprocess.run([sys.executable, str(ROOT / 'bootstrap.py'), 'dream-schedule',
+            '--prefix', str(self.prefix), '--no-load', *extra],
+            capture_output=True, text=True, env=dict(self.env, HOME=str(self.base / 'home')))
+        self.assertEqual(result.returncode, 0 if ok else 1, result.stderr)
+        return result
+
+    @unittest.skipIf(WINDOWS, 'Optional launchd/systemd integration')
+    def test_dream_schedule_runs_unattended_dream_nightly(self):
+        """Given an installed harness with a vault, when Dream is scheduled, then run it nightly from the workspace through the launcher."""
+        vault = self.base / 'my vault'
+        vault.mkdir()
+        (vault / 'INDEX.md').write_text('# Index\n')
+        self.install('--vault', str(vault))
+        self.dream_schedule('--dry-run', '--hour', '4', '--minute', '30')
+        script = self.prefix / 'lib/sudarshan-agent-loop/dream-nightly.sh'
+        self.assertFalse(script.exists())
+        self.dream_schedule('--hour', '4', '--minute', '30')
+        home = self.base / 'home'
+        if sys.platform == 'darwin':
+            unit = (home / 'Library/LaunchAgents/com.sudarshan-agent-loop.dream.plist').read_text()
+            self.assertIn('<integer>4</integer>', unit)
+            self.assertIn('<integer>30</integer>', unit)
+        else:
+            unit = (home / '.config/systemd/user/sudarshan-agent-loop-dream.timer').read_text()
+            self.assertIn('OnCalendar=*-*-* 04:30:00', unit)
+        self.assertIn(str(script), unit)
+        result = subprocess.run([str(script)], env=dict(self.env, CLAUDE_CONFIG_DIR=str(self.claude)),
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = next((self.prefix / 'state/sudarshan-agent-loop/dream').glob('*.log')).read_text()
+        out = json.loads(log.splitlines()[1])
+        self.assertEqual(out['args'], ['-p', '/dream --unattended', '--dangerously-skip-permissions', '--add-dir', str(vault.resolve())])
+        self.assertIn('rc=0', log)
+        self.dream_schedule('--propose-only')
+        self.assertIn("'/dream --unattended --dry-run'", script.read_text())
+
+    @unittest.skipIf(WINDOWS, 'Optional launchd/systemd integration')
+    def test_dream_schedule_requires_vault_launcher_and_valid_time(self):
+        """Given missing prerequisites or a bad time, when Dream is scheduled, then refuse without writing; explicit paths work without the harness."""
+        import shlex
+        self.dream_schedule(ok=False)
+        self.install()
+        self.dream_schedule(ok=False)
+        vault = self.base / 'vault'
+        vault.mkdir()
+        (vault / 'INDEX.md').write_text('# Index\n')
+        self.install('--vault', str(vault))
+        self.dream_schedule('--hour', '24', ok=False)
+        self.dream_schedule('--claude-launcher', str(self.base / 'missing'), ok=False)
+        self.assertFalse((self.base / 'home').exists())
+        self.assertFalse((self.prefix / 'lib/sudarshan-agent-loop/dream-nightly.sh').exists())
+        bare = self.base / 'bare prefix'
+        launcher = self.base / 'existing-claude'
+        launcher.write_text('#!/bin/sh\n')
+        launcher.chmod(0o700)
+        self.dream_schedule('--prefix', str(bare), '--claude-launcher', str(launcher),
+                            '--workspace', str(self.base), '--vault', str(vault))
+        self.assertIn(shlex.quote(str(launcher)), (bare / 'lib/sudarshan-agent-loop/dream-nightly.sh').read_text())
+
 
 if __name__ == '__main__':
     unittest.main()

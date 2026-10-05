@@ -139,11 +139,24 @@ def main():
     p.add_argument('--codex-launcher', help='Existing Codex wrapper (default: PREFIX/bin/sudarshan-codex)')
     p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
     p.add_argument('--dry-run', action='store_true')
+    p = sub.add_parser('dream-schedule', help='Run Dream unattended every night through the Claude launcher')
+    p.add_argument('--prefix', default='~/.local')
+    p.add_argument('--hour', type=int, default=3, help='Local hour, 0-23 (default: 3)')
+    p.add_argument('--minute', type=int, default=0)
+    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
+    p.add_argument('--workspace', help='Project root (default: installed harness setting)')
+    p.add_argument('--vault', help='Vault with INDEX.md (default: installed harness setting)')
+    p.add_argument('--propose-only', action='store_true', help='Run Dream with --dry-run: digest only, no file moves')
+    p.add_argument('--no-load', action='store_true', help='Write files without loading the scheduler')
+    p.add_argument('--dry-run', action='store_true')
     args = parser.parse_args()
     try:
         if args.command == 'orca-shell':
             from orca_shell import install as install_orca_shell
             return install_orca_shell(args)
+        if args.command == 'dream-schedule':
+            from dream_schedule import install as install_dream_schedule
+            return install_dream_schedule(args)
         return install(args) if args.command == 'install' else doctor(args)
     except (ValueError, OSError, TypeError, AttributeError) as error:
         print(f'Error: {error}', file=sys.stderr)

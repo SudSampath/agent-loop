@@ -99,6 +99,19 @@ If optimizers are enabled, check the proxy health at `http://127.0.0.1:8787/heal
 
 Connect MCP/plugins afresh using the correct account. Run a harmless read in each service and confirm the organization before marking it ready. Do not copy cookies, token files, auth databases, or an old employer's MCP configuration.
 
+## Nightly Dream (optional, macOS/Linux/WSL2)
+
+Dream reviews the vault, Claude memory, Claude and Codex transcripts, and git history across every repository and worktree under the project root. One Claude run covers both clients, so there is no separate Codex job. To run it unattended every night at 03:00 local time:
+
+```sh
+python3 bootstrap.py dream-schedule --dry-run
+python3 bootstrap.py dream-schedule
+```
+
+It reads the project root and vault from the installed harness and runs through `sudarshan-claude`, so Headroom and RTK apply when optimizers are enabled. An existing launcher setup can pass `--claude-launcher`, `--workspace`, and `--vault` instead. Change the time with `--hour`/`--minute`. macOS uses a launchd LaunchAgent (a missed run starts at next wake); Linux/WSL2 uses a systemd user timer with `Persistent=true` (WSL2 needs systemd enabled). Use `--no-load` to write files without activating them.
+
+The run passes `--dangerously-skip-permissions` so `/dream --unattended` can archive stale memories, write draft memories, and compress old session notes without prompts. Those moves are reversible and the skill never commits, pushes, or sends anything. Add `--propose-only` to run Dream with `--dry-run` instead: a digest only, no file moves. Logs go to `PREFIX/state/sudarshan-agent-loop/dream/`. To remove it: `launchctl bootout gui/$(id -u)/com.sudarshan-agent-loop.dream` and delete `~/Library/LaunchAgents/com.sudarshan-agent-loop.dream.plist`, or `systemctl --user disable --now sudarshan-agent-loop-dream.timer` and delete both units in `~/.config/systemd/user/`.
+
 ## Another job
 
 Create a separate OS account when work policy requires isolation. For convenience separation in one account, use separate homes and install prefix:
