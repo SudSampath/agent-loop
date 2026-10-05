@@ -8,6 +8,8 @@ import shutil
 import sys
 
 ROOT = Path(__file__).resolve().parent
+# Personal specifics stay in the vault; instructions point at whichever of these exist.
+PROFILE = ('profile.md', 'voice.md', 'audiences.md', 'CORE-PREFERENCES.md', 'lessons.md', 'current-focus.md')
 sys.path.insert(0, str(ROOT / 'runtime'))
 from common import instructions, merge, write
 from platform_support import WINDOWS, find_agent, launcher_content
@@ -36,7 +38,12 @@ def install(args):
     body += f'\n## This machine\n\nProject root: `{workspace}`.\n'
     body += (f'Active knowledge vault: `{vault}`. Read its INDEX.md before relevant research.\n' if vault
              else 'No knowledge vault configured. Use repository context; ask for missing personal context when needed.\n')
-    runtime = prefix / 'lib/sudarshan-agent-loop'
+    profile = [vault / 'me' / name for name in PROFILE if vault and (vault / 'me' / name).is_file()]
+    if profile:
+        body += ('\n## The user\n\nWho the user is, how they write, and who they write for live in these files. '
+                 'Read the relevant ones before personal, voice, or audience-dependent work; they take precedence over generic defaults here.\n\n')
+        body += ''.join(f'- `{path}`\n' for path in profile)
+    runtime = prefix / 'lib/agent-loop'
     planned = {}
     # Validate every conflict before writing anything.
     for agent, home in homes.items():
@@ -68,7 +75,7 @@ def install(args):
     planned[runtime / 'machine.json'] = json.dumps(cfg, indent=2) + '\n'
     for agent in homes:
         suffix = '.ps1' if WINDOWS else ''
-        planned[prefix / 'bin' / ('sudarshan-' + agent + suffix)] = launcher_content(sys.executable, runtime / 'launch.py', agent)
+        planned[prefix / 'bin' / ('agent-loop-' + agent + suffix)] = launcher_content(sys.executable, runtime / 'launch.py', agent)
     for target in planned:
         if target.is_symlink():
             raise ValueError(f'Refusing to replace symlink: {target}')
@@ -84,12 +91,17 @@ def install(args):
         spec.loader.exec_module(module)
         for agent, home in homes.items():
             module.configure(home, agent)
+    old = [prefix / 'bin' / ('sudarshan-' + agent + ('.ps1' if WINDOWS else '')) for agent in homes]
+    old = [p for p in old if p.exists()] + [p for p in [prefix / 'lib/sudarshan-agent-loop'] if p.exists()]
+    if old:
+        # Left in place so existing Orca overrides keep working until repointed.
+        print('Pre-rename files remain; repoint Orca to the agent-loop launchers, then delete: ' + ', '.join(map(str, old)))
     print('Preview complete.' if args.dry_run else f'Ready. Add {prefix / "bin"} to PATH; authenticate each CLI and run doctor.')
 
 
 def doctor(args):
     prefix = path(args.prefix)
-    config = prefix / 'lib/sudarshan-agent-loop/machine.json'
+    config = prefix / 'lib/agent-loop/machine.json'
     if not config.exists():
         print('MISSING installation; run install first')
         return 1
@@ -105,7 +117,7 @@ def doctor(args):
         home = Path(cfg[agent + '_home'])
         p = home / name
         checks[agent + ' instructions'] = p.exists() and cfg['instructions'].strip() in p.read_text(encoding='utf-8')
-        launcher = prefix / 'bin' / ('sudarshan-' + agent + ('.ps1' if WINDOWS else ''))
+        launcher = prefix / 'bin' / ('agent-loop-' + agent + ('.ps1' if WINDOWS else ''))
         checks[agent + ' launcher'] = launcher.is_file() if WINDOWS else os.access(launcher, os.X_OK)
         checks[agent + ' reviewed skills'] = all((home / 'skills' / p.relative_to(ROOT / 'skills')).exists() and (home / 'skills' / p.relative_to(ROOT / 'skills')).read_bytes() == p.read_bytes() for p in (ROOT / 'skills').rglob('*.md'))
     if cfg['vault']:
@@ -136,8 +148,8 @@ def main():
     p = sub.add_parser('orca-shell', help='Route bare agent commands in Orca Bash/Zsh terminals through wrappers')
     p.add_argument('--prefix', default='~/.local')
     p.add_argument('--rc', action='append', required=True, help='Bash/Zsh startup file; repeat for multiple files')
-    p.add_argument('--codex-launcher', help='Existing Codex wrapper (default: PREFIX/bin/sudarshan-codex)')
-    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
+    p.add_argument('--codex-launcher', help='Existing Codex wrapper (default: PREFIX/bin/agent-loop-codex)')
+    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/agent-loop-claude)')
     p.add_argument('--skip-permissions', action='store_true',
                    help='Start routed agents with approval prompts (and the Codex sandbox) bypassed')
     p.add_argument('--dry-run', action='store_true')
@@ -145,7 +157,7 @@ def main():
     p.add_argument('--prefix', default='~/.local')
     p.add_argument('--hour', type=int, default=3, help='Local hour, 0-23 (default: 3)')
     p.add_argument('--minute', type=int, default=0)
-    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/sudarshan-claude)')
+    p.add_argument('--claude-launcher', help='Existing Claude wrapper (default: PREFIX/bin/agent-loop-claude)')
     p.add_argument('--workspace', help='Project root (default: installed harness setting)')
     p.add_argument('--vault', help='Vault with INDEX.md (default: installed harness setting)')
     p.add_argument('--propose-only', action='store_true', help='Run Dream with --dry-run: digest only, no file moves')

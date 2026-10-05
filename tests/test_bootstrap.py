@@ -34,7 +34,7 @@ class BootstrapTests(unittest.TestCase):
                 shim.write_text("$PSNativeCommandArgumentPassing = 'Standard'\n& " + quote(sys.executable) + ' ' + quote(p) + ' @args\nexit $LASTEXITCODE\n', encoding='utf-8')
 
     def launcher(self, agent):
-        p = self.prefix / 'bin' / ('sudarshan-' + agent + ('.ps1' if WINDOWS else ''))
+        p = self.prefix / 'bin' / ('agent-loop-' + agent + ('.ps1' if WINDOWS else ''))
         return [shutil.which('pwsh'), '-NoProfile', '-File', str(p)] if WINDOWS else [str(p)]
 
     def install(self, *extra, ok=True):
@@ -113,7 +113,7 @@ class BootstrapTests(unittest.TestCase):
         """Given invalid input, when installing, then fail before changing other destinations."""
         self.install('--vault', str(self.base), ok=False)
         self.codex.mkdir()
-        (self.codex / 'AGENTS.md').write_text('<!-- sudarshan-agent-loop:start -->')
+        (self.codex / 'AGENTS.md').write_text('<!-- agent-loop:start -->')
         self.install(ok=False)
         self.assertFalse(self.prefix.exists())
 
@@ -213,7 +213,7 @@ class BootstrapTests(unittest.TestCase):
                                         env=dict(env, **marker), capture_output=True, text=True, check=True)
                 self.assertEqual(json.loads(result.stdout)['args'], [arg])
                 self.assertFalse(unused.exists())
-            launcher = self.prefix / 'bin/sudarshan-codex'
+            launcher = self.prefix / 'bin/agent-loop-codex'
             content = launcher.read_bytes()
             launcher.unlink()
             result = subprocess.run([shell, '-c', f'. {rc}; codex hello'],
@@ -260,7 +260,7 @@ class BootstrapTests(unittest.TestCase):
         self.assertTrue(first.startswith(before))
         self.assertEqual(len(list(self.base.glob('shell rc.agent-loop-backup-*'))), 1)
         malformed = self.base / 'broken rc'
-        malformed.write_text('# >>> sudarshan-agent-loop Orca routing >>>')
+        malformed.write_text('# >>> agent-loop Orca routing >>>')
         self.orca_shell('--rc', str(malformed), ok=False)
         self.assertEqual(rc.read_bytes(), first)
         self.orca_shell('--codex-launcher', str(self.bin / 'codex'), ok=False)
@@ -283,24 +283,24 @@ class BootstrapTests(unittest.TestCase):
         (vault / 'INDEX.md').write_text('# Index\n')
         self.install('--vault', str(vault))
         self.dream_schedule('--dry-run', '--hour', '4', '--minute', '30')
-        script = self.prefix / 'lib/sudarshan-agent-loop/dream-nightly.sh'
+        script = self.prefix / 'lib/agent-loop/dream-nightly.sh'
         self.assertFalse(script.exists())
         self.dream_schedule('--hour', '4', '--minute', '30')
         home = self.base / 'home'
         if sys.platform == 'darwin':
-            unit = (home / 'Library/LaunchAgents/com.sudarshan-agent-loop.dream.plist').read_text()
+            unit = (home / 'Library/LaunchAgents/com.agent-loop.dream.plist').read_text()
             self.assertIn('<integer>4</integer>', unit)
             self.assertIn('<integer>30</integer>', unit)
         else:
-            timer = (home / '.config/systemd/user/sudarshan-agent-loop-dream.timer').read_text()
+            timer = (home / '.config/systemd/user/agent-loop-dream.timer').read_text()
             self.assertIn('OnCalendar=*-*-* 04:30:00', timer)
-            unit = (home / '.config/systemd/user/sudarshan-agent-loop-dream.service').read_text()
+            unit = (home / '.config/systemd/user/agent-loop-dream.service').read_text()
             self.assertIn(f'ExecStart="{script}"', unit)  # Quoted: the prefix contains spaces.
         self.assertIn(str(script), unit)
         result = subprocess.run([str(script)], env=dict(self.env, CLAUDE_CONFIG_DIR=str(self.claude)),
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        log = next((self.prefix / 'state/sudarshan-agent-loop/dream').glob('*.log')).read_text()
+        log = next((self.prefix / 'state/agent-loop/dream').glob('*.log')).read_text()
         out = json.loads(log.splitlines()[1])
         self.assertEqual(out['args'], ['-p', '/dream --unattended', '--dangerously-skip-permissions', '--add-dir', str(vault.resolve())])
         self.assertIn('rc=0', log)
@@ -321,14 +321,14 @@ class BootstrapTests(unittest.TestCase):
         self.dream_schedule('--hour', '24', ok=False)
         self.dream_schedule('--claude-launcher', str(self.base / 'missing'), ok=False)
         self.assertFalse((self.base / 'home').exists())
-        self.assertFalse((self.prefix / 'lib/sudarshan-agent-loop/dream-nightly.sh').exists())
+        self.assertFalse((self.prefix / 'lib/agent-loop/dream-nightly.sh').exists())
         bare = self.base / 'bare prefix'
         launcher = self.base / 'existing-claude'
         launcher.write_text('#!/bin/sh\n')
         launcher.chmod(0o700)
         self.dream_schedule('--prefix', str(bare), '--claude-launcher', str(launcher),
                             '--workspace', str(self.base), '--vault', str(vault))
-        self.assertIn(shlex.quote(str(launcher)), (bare / 'lib/sudarshan-agent-loop/dream-nightly.sh').read_text())
+        self.assertIn(shlex.quote(str(launcher)), (bare / 'lib/agent-loop/dream-nightly.sh').read_text())
 
 
     def test_dream_follows_up_on_previous_recommendations_and_drafts(self):
@@ -360,6 +360,62 @@ class BootstrapTests(unittest.TestCase):
             self.assertIn(term, follow_up)
         self.assertIn('No promoted lessons yet', skill)
         self.assertLess(skill.index('## Lesson effectiveness'), skill.index('## Activity summary'))
+
+    def test_vault_profile_files_are_referenced_not_copied(self):
+        """Given a vault with some profile files, when installed, then instructions point to the existing ones without copying their content."""
+        vault = self.base / 'vault'
+        (vault / 'me').mkdir(parents=True)
+        (vault / 'INDEX.md').write_text('# Index\n')
+        (vault / 'me/voice.md').write_text('PRIVATE VOICE DETAIL\n')
+        (vault / 'me/profile.md').write_text('PRIVATE PROFILE DETAIL\n')
+        self.install('--vault', str(vault))
+        for home, name in ((self.codex, 'AGENTS.md'), (self.claude, 'CLAUDE.md')):
+            text = (home / name).read_text()
+            self.assertIn('## The user', text)
+            self.assertIn(str((vault / 'me/voice.md').resolve()), text)
+            self.assertIn(str((vault / 'me/profile.md').resolve()), text)
+            self.assertNotIn('audiences.md', text)
+            self.assertNotIn('PRIVATE', text)
+        self.install()
+        self.assertNotIn('## The user', (self.codex / 'AGENTS.md').read_text())
+
+    def test_pre_rename_blocks_are_migrated_not_duplicated(self):
+        """Given instruction and shell blocks from before the rename, when reinstalled, then each is replaced in place exactly once."""
+        self.codex.mkdir()
+        (self.codex / 'AGENTS.md').write_text('Keep me\n<!-- sudarshan-agent-loop:start -->\nold\n<!-- sudarshan-agent-loop:end -->\nAfter\n')
+        self.install('--optimizers')
+        text = (self.codex / 'AGENTS.md').read_text()
+        self.assertNotIn('sudarshan', text)
+        self.assertEqual(text.count('<!-- agent-loop:start -->'), 1)
+        self.assertTrue(text.startswith('Keep me\n') and text.endswith('After\n'))
+        self.assertNotIn('\nold\n', text)
+        rc = self.base / 'shell rc'
+        rc.write_text('# mine\n# >>> sudarshan-agent-loop Orca routing >>>\nold\n# <<< sudarshan-agent-loop Orca routing <<<\n')
+        self.orca_shell()
+        text = rc.read_text()
+        self.assertNotIn('sudarshan', text)
+        self.assertEqual(text.count('# >>> agent-loop Orca routing >>>'), 1)
+        self.assertTrue(text.startswith('# mine\n'))
+
+    @unittest.skipIf(WINDOWS, 'Optional launchd/systemd integration')
+    def test_dream_schedule_retires_pre_rename_job(self):
+        """Given a nightly Dream job from before the rename, when Dream is scheduled, then the old job is removed so Dream runs once."""
+        vault = self.base / 'vault'
+        vault.mkdir()
+        (vault / 'INDEX.md').write_text('# Index\n')
+        self.install('--vault', str(vault))
+        home = self.base / 'home'
+        if sys.platform == 'darwin':
+            old = [home / 'Library/LaunchAgents/com.sudarshan-agent-loop.dream.plist']
+        else:
+            old = [home / '.config/systemd/user' / ('sudarshan-agent-loop-dream' + ext) for ext in ('.timer', '.service')]
+        for path in old:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('old job')
+        self.dream_schedule('--dry-run')
+        self.assertTrue(all(path.exists() for path in old))
+        self.dream_schedule()
+        self.assertFalse(any(path.exists() for path in old))
 
 if __name__ == '__main__':
     unittest.main()

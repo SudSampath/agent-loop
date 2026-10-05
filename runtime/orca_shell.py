@@ -7,8 +7,9 @@ import shlex
 from common import write
 from platform_support import WINDOWS
 
-START = '# >>> sudarshan-agent-loop Orca routing >>>'
-END = '# <<< sudarshan-agent-loop Orca routing <<<'
+START = '# >>> agent-loop Orca routing >>>'
+END = '# <<< agent-loop Orca routing <<<'
+LEGACY = {'# >>> sudarshan-agent-loop Orca routing >>>': START, '# <<< sudarshan-agent-loop Orca routing <<<': END}
 ORCA = '${ORCA_WORKTREE_ID:-}${ORCA_WORKSPACE_ID:-}${ORCA_TAB_ID:-}'
 BYPASS = {'codex': '--dangerously-bypass-approvals-and-sandbox', 'claude': '--dangerously-skip-permissions'}
 
@@ -33,6 +34,8 @@ def routing_block(launchers, skip_permissions=False):
 
 
 def merge_routing(old, block):
+    for legacy, current in LEGACY.items():
+        old = old.replace(legacy, current)
     if START in old or END in old:
         if old.count(START) != 1 or old.count(END) != 1 or old.index(START) > old.index(END):
             raise ValueError('Malformed Orca routing block; repair it before installing')
@@ -47,13 +50,13 @@ def install(args):
         raise ValueError('Orca shell routing requires Bash/Zsh on macOS, Linux, or WSL2')
     prefix = Path(args.prefix).expanduser().resolve()
     if not args.codex_launcher or not args.claude_launcher:
-        config = prefix / 'lib/sudarshan-agent-loop/machine.json'
+        config = prefix / 'lib/agent-loop/machine.json'
         if not config.is_file() or not json.loads(config.read_text(encoding='utf-8')).get('optimizers'):
             raise ValueError('Install the harness with --optimizers before enabling Orca shell routing')
     launchers = {}
     for agent in ('codex', 'claude'):
         value = getattr(args, agent + '_launcher')
-        launcher = Path(value).expanduser().absolute() if value else prefix / 'bin' / ('sudarshan-' + agent)
+        launcher = Path(value).expanduser().absolute() if value else prefix / 'bin' / ('agent-loop-' + agent)
         if not launcher.is_file() or not os.access(launcher, os.X_OK):
             raise ValueError(f'Executable wrapper missing: {launcher}; install the harness with --optimizers first')
         # Routing straight back to the bare command would silently defeat the safeguard.

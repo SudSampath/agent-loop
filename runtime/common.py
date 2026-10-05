@@ -4,12 +4,16 @@ from pathlib import Path
 import tempfile
 from platform_support import file_lock
 
-START = '<!-- sudarshan-agent-loop:start -->'
-END = '<!-- sudarshan-agent-loop:end -->'
+START = '<!-- agent-loop:start -->'
+END = '<!-- agent-loop:end -->'
+# Blocks written before the project was renamed are migrated in place.
+LEGACY = {'<!-- sudarshan-agent-loop:start -->': START, '<!-- sudarshan-agent-loop:end -->': END}
 
 
 def merge(old, body):
     block = START + '\n' + body.rstrip() + '\n' + END
+    for legacy, current in LEGACY.items():
+        old = old.replace(legacy, current)
     if START in old or END in old:
         if old.count(START) != 1 or old.count(END) != 1 or old.index(START) > old.index(END):
             raise ValueError('Malformed managed instruction block; repair it before installing')

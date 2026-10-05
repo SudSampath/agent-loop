@@ -53,7 +53,7 @@ This is a separate operator step that creates a login service. Do not run it if 
 
 ## 4. Orca
 
-Install Orca separately. In Settings → Agents → Command overrides, select the full printed paths to `sudarshan-codex` and `sudarshan-claude`. Make sure the Orca process PATH includes the real agent binaries plus Headroom/RTK if enabled; restart the app after changing PATH. Do not edit Orca's live state JSON. Keep its existing managed environment and hooks. Review Default args separately; Command overrides launched by Orca itself never receive bypass flags from this harness.
+Install Orca separately. In Settings → Agents → Command overrides, select the full printed paths to `agent-loop-codex` and `agent-loop-claude`. Make sure the Orca process PATH includes the real agent binaries plus Headroom/RTK if enabled; restart the app after changing PATH. Do not edit Orca's live state JSON. Keep its existing managed environment and hooks. Review Default args separately; Command overrides launched by Orca itself never receive bypass flags from this harness.
 
 Orca may supply a separate CODEX_HOME. The launcher adds its managed instructions and reviewed skills there at launch. Authentication and other Orca-managed configuration remain Orca's responsibility. Different jobs should use different Orca profiles or OS accounts; do not route a personal-vault launcher into a work profile.
 
@@ -83,7 +83,7 @@ python3 bootstrap.py orca-shell --rc "$HOME/.zshrc" \
 # Inspect the preview, then repeat without --dry-run.
 ```
 
-Explicit wrappers must already configure Headroom and RTK; executable presence alone cannot prove that. Default harness wrappers require optimizers enabled. Open a new terminal after installing: existing shells and running agents do not acquire routing automatically. To roll back, remove only the `sudarshan-agent-loop Orca routing` block and open another terminal.
+Explicit wrappers must already configure Headroom and RTK; executable presence alone cannot prove that. Default harness wrappers require optimizers enabled. Open a new terminal after installing: existing shells and running agents do not acquire routing automatically. To roll back, remove only the `agent-loop Orca routing` block and open another terminal.
 
 Verify in a fresh disposable worktree: `type codex` and `type claude` should report functions; `codex --version` should return directly without starting optimizers. On the next normal agent launch, verify its Headroom parent/routing arguments, RTK configuration in the active home, and a rewritten tool call. Proxy health and model-list requests alone do not prove inference routing. See [the investigation](orca-routing.md).
 
@@ -91,8 +91,8 @@ Verify in a fresh disposable worktree: `type codex` and `type claude` should rep
 
 ```sh
 python3 bootstrap.py doctor
-sudarshan-codex --version
-sudarshan-claude --version
+agent-loop-codex --version
+agent-loop-claude --version
 ```
 
 Then open each agent in a disposable repository and ask: “List the instruction sources you loaded, the selected knowledge location, and the available skills. Read git status, make no changes, and report the result.” Verify both report the right paths and account context. Try a synthetic PRD outline to verify skill references. These live calls consume your normal agent usage.
@@ -110,9 +110,9 @@ python3 bootstrap.py dream-schedule --dry-run
 python3 bootstrap.py dream-schedule
 ```
 
-It reads the project root and vault from the installed harness and runs through `sudarshan-claude`, so Headroom and RTK apply when optimizers are enabled. An existing launcher setup can pass `--claude-launcher`, `--workspace`, and `--vault` instead. Change the time with `--hour`/`--minute`. macOS uses a launchd LaunchAgent (a missed run starts at next wake); Linux/WSL2 uses a systemd user timer with `Persistent=true` (WSL2 needs systemd enabled). Use `--no-load` to write files without activating them.
+It reads the project root and vault from the installed harness and runs through `agent-loop-claude`, so Headroom and RTK apply when optimizers are enabled. An existing launcher setup can pass `--claude-launcher`, `--workspace`, and `--vault` instead. Change the time with `--hour`/`--minute`. macOS uses a launchd LaunchAgent (a missed run starts at next wake); Linux/WSL2 uses a systemd user timer with `Persistent=true` (WSL2 needs systemd enabled). Use `--no-load` to write files without activating them.
 
-The run passes `--dangerously-skip-permissions` so `/dream --unattended` can archive stale memories, write draft memories, and compress old session notes without prompts. Those moves are reversible and the skill never commits, pushes, or sends anything. Add `--propose-only` to run Dream with `--dry-run` instead: a digest only, no file moves. Logs go to `PREFIX/state/sudarshan-agent-loop/dream/`. To remove it: `launchctl bootout gui/$(id -u)/com.sudarshan-agent-loop.dream` and delete `~/Library/LaunchAgents/com.sudarshan-agent-loop.dream.plist`, or `systemctl --user disable --now sudarshan-agent-loop-dream.timer` and delete both units in `~/.config/systemd/user/`.
+The run passes `--dangerously-skip-permissions` so `/dream --unattended` can archive stale memories, write draft memories, and compress old session notes without prompts. Those moves are reversible and the skill never commits, pushes, or sends anything. Add `--propose-only` to run Dream with `--dry-run` instead: a digest only, no file moves. Logs go to `PREFIX/state/agent-loop/dream/`. To remove it: `launchctl bootout gui/$(id -u)/com.agent-loop.dream` and delete `~/Library/LaunchAgents/com.agent-loop.dream.plist`, or `systemctl --user disable --now agent-loop-dream.timer` and delete both units in `~/.config/systemd/user/`.
 
 ## Another job
 
@@ -121,14 +121,16 @@ Create a separate OS account when work policy requires isolation. For convenienc
 ```sh
 mkdir -p "$HOME/Work/Projects"
 python3 bootstrap.py install --workspace "$HOME/Work/Projects" --prefix "$HOME/.local/agent-loop-work" --codex-home "$HOME/.codex-work" --claude-home "$HOME/.claude-work"
-CODEX_HOME="$HOME/.codex-work" CLAUDE_CONFIG_DIR="$HOME/.claude-work" "$HOME/.local/agent-loop-work/bin/sudarshan-codex"
-CODEX_HOME="$HOME/.codex-work" CLAUDE_CONFIG_DIR="$HOME/.claude-work" "$HOME/.local/agent-loop-work/bin/sudarshan-claude"
+CODEX_HOME="$HOME/.codex-work" CLAUDE_CONFIG_DIR="$HOME/.claude-work" "$HOME/.local/agent-loop-work/bin/agent-loop-codex"
+CODEX_HOME="$HOME/.codex-work" CLAUDE_CONFIG_DIR="$HOME/.claude-work" "$HOME/.local/agent-loop-work/bin/agent-loop-claude"
 ```
 
 Authenticate those homes afresh. Add only an approved work vault using `--vault`; omit it to start from repository context. Separate homes are not a security sandbox: both processes still have your OS account's file access, and provider credentials may use OS-level stores. Never move employer data between jobs. Reuse generic methods and templates only.
 
 ## Updates and rollback
 
+**Upgrading from the pre-rename `sudarshans-agent-loop`:** rerun `install` (and `orca-shell` / `dream-schedule` if you used them) with the same options. Managed blocks in AGENTS.md, CLAUDE.md, and shell startup files are migrated to the new markers in place; the old nightly Dream job is retired. Old `sudarshan-codex`/`sudarshan-claude` launchers and `lib/sudarshan-agent-loop` are left so existing Orca overrides keep working: repoint Orca to `agent-loop-codex`/`agent-loop-claude`, then delete them. Update your clone's remote with `git remote set-url origin https://github.com/SudSampath/agent-loop.git` (GitHub also redirects the old URL).
+
 Pull intentional repository updates, rerun tests, preview installation with the same options, then install. Launchers run installed copies, so pulling alone does not update them. Keep your install command in a local machine note outside Git. Reinstall after moving/removing the Python interpreter used at install time.
 
-To stop using the harness, point Orca back to the original binaries and use bare `codex`/`claude`. Remove only the delimited agent-loop blocks from AGENTS.md/CLAUDE.md. Remove only hook entries pointing to this installation's `rtk_hook.py`; a pre-existing RTK hook should remain. The Claude hook is shared by name (`rtk hook claude`); compare the preinstall backup to establish whether this install added it. Remove only unchanged harness skill copies. Finally remove the two launcher files and the `lib/sudarshan-agent-loop` directory under the selected prefix. Backups can restore exact earlier files, but merge instead if newer edits exist. If you explicitly installed the service, `headroom install remove --profile agent-loop` removes it. Reinstalling without `--optimizers` stops proxy wrapping but does not remove RTK hooks; use this rollback procedure to remove them.
+To stop using the harness, point Orca back to the original binaries and use bare `codex`/`claude`. Remove only the delimited agent-loop blocks from AGENTS.md/CLAUDE.md. Remove only hook entries pointing to this installation's `rtk_hook.py`; a pre-existing RTK hook should remain. The Claude hook is shared by name (`rtk hook claude`); compare the preinstall backup to establish whether this install added it. Remove only unchanged harness skill copies. Finally remove the two launcher files and the `lib/agent-loop` directory under the selected prefix. Backups can restore exact earlier files, but merge instead if newer edits exist. If you explicitly installed the service, `headroom install remove --profile agent-loop` removes it. Reinstalling without `--optimizers` stops proxy wrapping but does not remove RTK hooks; use this rollback procedure to remove them.
