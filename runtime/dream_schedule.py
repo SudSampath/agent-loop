@@ -54,7 +54,9 @@ def launchd_plist(script, hour, minute, logs):
 
 
 def systemd_units(script, hour, minute):
-    service = f'[Unit]\nDescription=Nightly unattended Dream review\n\n[Service]\nType=oneshot\nExecStart={script}\n'
+    # systemd splits ExecStart on whitespace unless the path is double-quoted.
+    quoted = '"' + str(script).replace('\\', '\\\\').replace('"', '\\"') + '"'
+    service = f'[Unit]\nDescription=Nightly unattended Dream review\n\n[Service]\nType=oneshot\nExecStart={quoted}\n'
     # Persistent catches up a run missed while the machine was off or asleep.
     timer = (f'[Unit]\nDescription=Nightly unattended Dream review\n\n[Timer]\n'
              f'OnCalendar=*-*-* {hour:02d}:{minute:02d}:00\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n')

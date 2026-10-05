@@ -271,8 +271,10 @@ class BootstrapTests(unittest.TestCase):
             self.assertIn('<integer>4</integer>', unit)
             self.assertIn('<integer>30</integer>', unit)
         else:
-            unit = (home / '.config/systemd/user/sudarshan-agent-loop-dream.timer').read_text()
-            self.assertIn('OnCalendar=*-*-* 04:30:00', unit)
+            timer = (home / '.config/systemd/user/sudarshan-agent-loop-dream.timer').read_text()
+            self.assertIn('OnCalendar=*-*-* 04:30:00', timer)
+            unit = (home / '.config/systemd/user/sudarshan-agent-loop-dream.service').read_text()
+            self.assertIn(f'ExecStart="{script}"', unit)  # Quoted: the prefix contains spaces.
         self.assertIn(str(script), unit)
         result = subprocess.run([str(script)], env=dict(self.env, CLAUDE_CONFIG_DIR=str(self.claude)),
                                 capture_output=True, text=True)
