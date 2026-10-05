@@ -248,5 +248,15 @@ class BootstrapTests(unittest.TestCase):
         self.orca_shell('--rc', str(link), ok=False)
 
 
+    def test_dream_follows_up_on_previous_recommendations_and_drafts(self):
+        """Given a previous digest and pending drafts, when Dream runs, then it reports follow-up status and confirms, readies, or retires drafts."""
+        skill = (ROOT / 'skills/dream/SKILL.md').read_text(encoding='utf-8')
+        follow_up = skill.split('## 4. Follow-up')[1].split('## 5. Digest')[0]
+        for term in ('`done`', '`open`', '`dropped`', 'First dream: nothing to follow up',
+                     '`confirmations >= 2`', '`status: ready`', '14 days', 'drafts/archive/', '--dry-run'):
+            self.assertIn(term, follow_up)
+        self.assertLess(skill.index('## Follow-up'), skill.index('## Activity summary'))
+        self.assertIn('`addresses`', skill)
+
 if __name__ == '__main__':
     unittest.main()

@@ -33,7 +33,17 @@ Read only real user text, visible assistant text, and tool names. Never copy rea
 
 Extract recurring requests, friction points, decision dynamics, and candidate preferences.
 
-## 4. Digest
+## 4. Follow-up
+
+Close the loop on the previous dream before writing a new one. Use the newest earlier `<vault>/daily/*-dream.md`; if none exists, record `First dream: nothing to follow up` and continue.
+
+- **Recommendations:** mark each bullet from its `## Recommendations` as `done`, `open`, or `dropped` (the user decided against it). Cite the evidence (commit, session id, or note path), or write `no evidence`. A recommendation still `open` across three dreams is either reworded more concretely or dropped, with the reason.
+- **Drafts:** for each `<claude>/projects/*/memory/drafts/*.md` with `status: draft` or `status: ready`, look for new in-window evidence supporting its claim. When found, increment `confirmations` (absent counts as 0) and set `last_confirmed: <today>`. At `confirmations >= 2`, set `status: ready` so the dream-review skill offers it for promotion.
+- **Retire:** move a `status: draft` file with no confirmation for 14 days since `proposed_in` (or `last_confirmed`, if later) to `drafts/archive/` with the archive banner from step 6. `ready` drafts wait for the user and are never retired.
+
+With `--dry-run`, report statuses without editing or moving drafts.
+
+## 5. Digest
 
 Write `<vault>/daily/{today}-dream.md`:
 
@@ -46,6 +56,9 @@ sources_scanned: vault=N files, memory=M entries across D dirs, claude_sessions=
 ---
 
 # Dream — YYYY-MM-DD
+
+## Follow-up
+Prior recommendations with status and evidence; drafts confirmed, marked ready, or retired.
 
 ## Activity summary
 3–5 sentences on the shape of the window: what was worked on, what shipped, what stalled. Link specific artifacts.
@@ -65,22 +78,23 @@ Each bullet: what to do and why.
 ## Memory changes (this dream)
 - **Archived (N):** files moved, with reason
 - **Drafted (M):** proposed memories, with rationale
-- **Promoted (K):** drafts moved to root since the last dream, if any
+- **Confirmed (C) / Ready (R) / Retired (T):** draft changes from step 4
+- **Promoted (K):** drafts promoted by dream-review since the last dream, if any
 
 ## Vault health
 ```
 
 Keep it skimmable. Write in the user's own terms; do not strengthen claims beyond the evidence.
 
-## 5. Archive stale memories
+## 6. Archive stale memories
 
-Move a memory to `<dir>/archive/` when it has no signal in the vault or any session for 30 days, when a newer fact contradicts it, or when the files, tools, or paths it names no longer exist. Add a banner at the top: `> Archived YYYY-MM-DD: <reason>. Move back to root if relevant.` Remove its MEMORY.md entry. With `--dry-run`, list the moves instead.
+Move a memory to `<dir>/archive/` when it has no signal in the vault or any session for 30 days, when a newer fact contradicts it, or when the files, tools, or paths it names no longer exist. Add a banner at the top (`<reason>` may cite step 4 retirement): `> Archived YYYY-MM-DD: <reason>. Move back to root if relevant.` Remove its MEMORY.md entry. With `--dry-run`, list the moves instead.
 
-## 6. Draft new memories
+## 7. Draft new memories
 
-For preferences confirmed twice, new systems to check, recurring project context, or new facts about role or tooling, write a draft into the most relevant memory dir's `drafts/`. Use the same frontmatter as a real memory, plus `status: draft`, `proposed_in: dream-YYYY-MM-DD`, and `proposed_reason`. Never promote a draft; the user does that.
+For preferences confirmed twice, new systems to check, recurring project context, or new facts about role or tooling, write a draft into the most relevant memory dir's `drafts/`. Use the same frontmatter as a real memory, plus `status: draft`, `proposed_in: dream-YYYY-MM-DD`, `proposed_reason`, and `addresses` (the friction or gap it should fix, in a phrase someone could search transcripts for). Before drafting, check existing drafts: if one covers the same claim, confirm that draft as in step 4 instead of creating a duplicate. Never promote a draft; the user does that with dream-review.
 
-## 7. Vault health
+## 8. Vault health
 
 Obsidian's indexer can crash on oversized notes; the ceiling is about 500KB per `.md` (follow the vault's AGENT.md if it says otherwise). Find every `.md` over 500KB in the vault.
 
@@ -90,7 +104,7 @@ Obsidian's indexer can crash on oversized notes; the ceiling is about 500KB per 
 
 With `--dry-run`, list what would be compressed and why.
 
-## 8. Indexes and report
+## 9. Indexes and report
 
 Regenerate MEMORY.md for each dir whose root entries changed, one line per root memory: `- [<name>](<filename>) — <description>`. Then print:
 
@@ -99,6 +113,7 @@ Dream — YYYY-MM-DD
 - Window: <since> → <today> (<N> days)
 - Sources: vault=<N>, memory=<M>, Claude=<C> sessions, Codex=<K> turns, repos=<R>
 - Digest: daily/YYYY-MM-DD-dream.md
+- Follow-up: <D> done, <O> open, <X> dropped; drafts <C> confirmed, <R> ready, <T> retired
 - Archived: <N>   Drafted: <M>   Compressed: <K>
 - Vault health: clean | <N> oversized (see digest)
 ```
