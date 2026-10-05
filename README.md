@@ -33,6 +33,7 @@ To attach an Obsidian vault, finish syncing it and add `--vault "/path/to/your/v
 - Launchers that preserve Orca's injected environment and support its separate runtime home.
 - Optional Headroom proxy and additive RTK hooks.
 - Opt-in Orca shell routing so bare agent commands in worktree terminals also reach the wrappers.
+- Opt-in nightly unattended Dream run across both clients (launchd or systemd).
 - [Daily workflow](docs/workflow.md), [new job and migration guidance](docs/setup.md#another-job), and a [handoff template](templates/handoff.md).
 
 Credentials, connected accounts, employer data, and session history are configured locally. Cloning this repo does not authenticate the agents or connect Obsidian Sync.
