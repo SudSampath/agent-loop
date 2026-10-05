@@ -258,5 +258,15 @@ class BootstrapTests(unittest.TestCase):
         self.assertLess(skill.index('## Follow-up'), skill.index('## Activity summary'))
         self.assertIn('`addresses`', skill)
 
+    def test_dream_review_installs_for_both_clients_with_scoped_targets(self):
+        """Given ready drafts, when dream-review is installed and read, then both clients get it and it defines scoped, approved promotion."""
+        self.install()
+        for home in (self.codex, self.claude):
+            self.assertTrue((home / 'skills/dream-review/SKILL.md').is_file())
+        skill = (ROOT / 'skills/dream-review/SKILL.md').read_text(encoding='utf-8')
+        for term in ('`status: ready`', 'memory root', '`me/`', 'templates/core.md', 'explicit approval',
+                     'promoted_from', 'drafts/archive/', 'Defer', 'none'):
+            self.assertIn(term, skill)
+
 if __name__ == '__main__':
     unittest.main()
