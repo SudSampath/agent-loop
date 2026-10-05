@@ -379,16 +379,21 @@ class BootstrapTests(unittest.TestCase):
         self.install()
         self.assertNotIn('## The user', (self.codex / 'AGENTS.md').read_text())
 
-    def test_pre_rename_blocks_are_migrated_not_duplicated(self):
-        """Given instruction and shell blocks from before the rename, when reinstalled, then each is replaced in place exactly once."""
+    def test_pre_rename_instructions_are_migrated_not_duplicated(self):
+        """Given an instruction block from before the rename, when reinstalled, then it is replaced in place exactly once."""
         self.codex.mkdir()
         (self.codex / 'AGENTS.md').write_text('Keep me\n<!-- sudarshan-agent-loop:start -->\nold\n<!-- sudarshan-agent-loop:end -->\nAfter\n')
-        self.install('--optimizers')
+        self.install()
         text = (self.codex / 'AGENTS.md').read_text()
         self.assertNotIn('sudarshan', text)
         self.assertEqual(text.count('<!-- agent-loop:start -->'), 1)
         self.assertTrue(text.startswith('Keep me\n') and text.endswith('After\n'))
         self.assertNotIn('\nold\n', text)
+
+    @unittest.skipIf(WINDOWS, 'Optional Bash/Zsh integration')
+    def test_pre_rename_shell_block_is_migrated_not_duplicated(self):
+        """Given an Orca shell block from before the rename, when routing is reinstalled, then it is replaced in place exactly once."""
+        self.install('--optimizers')
         rc = self.base / 'shell rc'
         rc.write_text('# mine\n# >>> sudarshan-agent-loop Orca routing >>>\nold\n# <<< sudarshan-agent-loop Orca routing <<<\n')
         self.orca_shell()
