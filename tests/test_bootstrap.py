@@ -331,5 +331,35 @@ class BootstrapTests(unittest.TestCase):
         self.assertIn(shlex.quote(str(launcher)), (bare / 'lib/sudarshan-agent-loop/dream-nightly.sh').read_text())
 
 
+    def test_dream_follows_up_on_previous_recommendations_and_drafts(self):
+        """Given a previous digest and pending drafts, when Dream runs, then it reports follow-up status and confirms, readies, or retires drafts."""
+        skill = (ROOT / 'skills/dream/SKILL.md').read_text(encoding='utf-8')
+        follow_up = skill.split('## 4. Follow-up')[1].split('## 5. Digest')[0]
+        for term in ('`done`', '`open`', '`dropped`', 'First dream: nothing to follow up',
+                     '`confirmations >= 2`', '`status: ready`', '14 days', 'drafts/archive/', '--dry-run'):
+            self.assertIn(term, follow_up)
+        self.assertLess(skill.index('## Follow-up'), skill.index('## Activity summary'))
+        self.assertIn('`addresses`', skill)
+
+    def test_dream_review_installs_for_both_clients_with_scoped_targets(self):
+        """Given ready drafts, when dream-review is installed and read, then both clients get it and it defines scoped, approved promotion."""
+        self.install()
+        for home in (self.codex, self.claude):
+            self.assertTrue((home / 'skills/dream-review/SKILL.md').is_file())
+        skill = (ROOT / 'skills/dream-review/SKILL.md').read_text(encoding='utf-8')
+        for term in ('`status: ready`', 'memory root', '`me/`', 'templates/core.md', 'explicit approval',
+                     'promoted_from', 'drafts/archive/', 'Defer', 'none'):
+            self.assertIn(term, skill)
+
+    def test_dream_reports_whether_promoted_lessons_hold(self):
+        """Given promoted lessons, when Dream runs, then it reports each as recurring, holding, or untested without editing it."""
+        skill = (ROOT / 'skills/dream/SKILL.md').read_text(encoding='utf-8')
+        follow_up = skill.split('## 4. Follow-up')[1].split('## 5. Digest')[0]
+        for term in ('promoted_from', '`addresses`', '`recurring`', '`holding`', '`untested`', '30 days',
+                     'never edit a promoted lesson'):
+            self.assertIn(term, follow_up)
+        self.assertIn('No promoted lessons yet', skill)
+        self.assertLess(skill.index('## Lesson effectiveness'), skill.index('## Activity summary'))
+
 if __name__ == '__main__':
     unittest.main()
