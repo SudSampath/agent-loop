@@ -1,5 +1,10 @@
 name: Harness checks
-on: [push, pull_request, workflow_dispatch]
+on:
+  # Branch pushes are covered by pull_request; checking main again after merges.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -10,8 +15,8 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
