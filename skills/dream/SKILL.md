@@ -41,6 +41,8 @@ Close the loop on the previous dream before writing a new one. Use the newest ea
 - **Drafts:** for each `<claude>/projects/*/memory/drafts/*.md` with `status: draft` or `status: ready`, look for new in-window evidence supporting its claim. When found, increment `confirmations` (absent counts as 0) and set `last_confirmed: <today>`. At `confirmations >= 2`, set `status: ready` so the dream-review skill offers it for promotion.
 - **Retire:** move a `status: draft` file with no confirmation for 14 days since `proposed_in` (or `last_confirmed`, if later) to `drafts/archive/` with the archive banner from step 6. `ready` drafts wait for the user and are never retired.
 
+- **Lesson effectiveness:** find promoted lessons by their `promoted_from` marker: frontmatter in memory roots, or `<!-- promoted_from: ...; addresses: ... -->` comments in `<vault>/me/` and in `<projects>`'s agent-loop checkout (`templates/core.md`, `skills/`). For each, search in-window sessions from both clients for the friction named in `addresses`. Mark it `recurring` if the friction shows up again (link the sessions and suggest rewording, moving it to a broader scope, or enforcing it with a hook or test), `holding` if related work happened without the friction and the lesson is at least 30 days old, or `untested` if there was no related activity (or it is newer than 30 days with no recurrence). Report only; never edit a promoted lesson.
+
 With `--dry-run`, report statuses without editing or moving drafts.
 
 ## 5. Digest
@@ -59,6 +61,9 @@ sources_scanned: vault=N files, memory=M entries across D dirs, claude_sessions=
 
 ## Follow-up
 Prior recommendations with status and evidence; drafts confirmed, marked ready, or retired.
+
+## Lesson effectiveness
+Each promoted lesson as `recurring`, `holding`, or `untested`, with evidence. If none, `No promoted lessons yet`.
 
 ## Activity summary
 3–5 sentences on the shape of the window: what was worked on, what shipped, what stalled. Link specific artifacts.
@@ -114,6 +119,7 @@ Dream — YYYY-MM-DD
 - Sources: vault=<N>, memory=<M>, Claude=<C> sessions, Codex=<K> turns, repos=<R>
 - Digest: daily/YYYY-MM-DD-dream.md
 - Follow-up: <D> done, <O> open, <X> dropped; drafts <C> confirmed, <R> ready, <T> retired
+- Lessons: <H> holding, <U> untested, <Y> recurring
 - Archived: <N>   Drafted: <M>   Compressed: <K>
 - Vault health: clean | <N> oversized (see digest)
 ```

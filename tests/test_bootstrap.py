@@ -268,5 +268,15 @@ class BootstrapTests(unittest.TestCase):
                      'promoted_from', 'drafts/archive/', 'Defer', 'none'):
             self.assertIn(term, skill)
 
+    def test_dream_reports_whether_promoted_lessons_hold(self):
+        """Given promoted lessons, when Dream runs, then it reports each as recurring, holding, or untested without editing it."""
+        skill = (ROOT / 'skills/dream/SKILL.md').read_text(encoding='utf-8')
+        follow_up = skill.split('## 4. Follow-up')[1].split('## 5. Digest')[0]
+        for term in ('promoted_from', '`addresses`', '`recurring`', '`holding`', '`untested`', '30 days',
+                     'never edit a promoted lesson'):
+            self.assertIn(term, follow_up)
+        self.assertIn('No promoted lessons yet', skill)
+        self.assertLess(skill.index('## Lesson effectiveness'), skill.index('## Activity summary'))
+
 if __name__ == '__main__':
     unittest.main()
