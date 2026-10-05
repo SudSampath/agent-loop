@@ -7,7 +7,7 @@ description: Walk through Dream drafts marked ready and promote each accepted le
 
 Turn confirmed Dream drafts into durable instructions. The user decides every promotion; this skill proposes and applies.
 
-Resolve the vault from the active global/project loader. If it is unavailable, ask for its location; do not fall back to an old employer vault. `<claude>` is the Claude home (`CLAUDE_CONFIG_DIR`, default `~/.claude`); `<harness>` is the sudarshans-agent-loop checkout under the project root.
+Resolve the vault from the active global/project loader. If it is unavailable, ask for its location; do not fall back to an old employer vault. `<claude>` is the Claude home (`CLAUDE_CONFIG_DIR`, default `~/.claude`); `<harness>` is the agent-loop checkout under the project root.
 
 ## 1. Collect
 

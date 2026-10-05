@@ -35,8 +35,8 @@ Run from a normal PowerShell terminal, outside an existing managed agent session
 
 ```powershell
 gh auth login
-gh repo clone SudSampath/sudarshans-agent-loop
-Set-Location sudarshans-agent-loop
+gh repo clone SudSampath/agent-loop
+Set-Location agent-loop
 New-Item -ItemType Directory -Force "$HOME\Projects" | Out-Null
 .\install.ps1 -Workspace "$HOME\Projects" -DryRun
 .\install.ps1 -Workspace "$HOME\Projects"
@@ -46,7 +46,7 @@ python .\bootstrap.py doctor
 
 For Obsidian, finish syncing first, then rerun with `-Vault "C:\Users\YourName\Documents\My Knowledge"`. INDEX.md must exist. Specify all desired options each time; omitted Vault clears the configured vault. No credentials or vault files are copied into this repository.
 
-The default destinations are `$HOME\.codex\AGENTS.md`, `$HOME\.claude\CLAUDE.md`, each client's skills directory, and `$HOME\.local\bin\sudarshan-{codex,claude}.ps1`. Existing CODEX_HOME and CLAUDE_CONFIG_DIR values take precedence unless you pass `-CodexHome` / `-ClaudeHome`. Existing content outside the managed block is retained. Backups are created before changed files are replaced.
+The default destinations are `$HOME\.codex\AGENTS.md`, `$HOME\.claude\CLAUDE.md`, each client's skills directory, and `$HOME\.local\bin\agent-loop-{codex,claude}.ps1`. Existing CODEX_HOME and CLAUDE_CONFIG_DIR values take precedence unless you pass `-CodexHome` / `-ClaudeHome`. Existing content outside the managed block is retained. Backups are created before changed files are replaced.
 
 The PATH change above applies only to the current terminal. Add the launcher directory through Windows' user Environment Variables UI to keep it across terminals; this installer does not alter your global PATH or PowerShell profile.
 
@@ -54,14 +54,14 @@ The PATH change above applies only to the current terminal. Add the launcher dir
 
 ```powershell
 Set-Location "$HOME\Projects\your-project"
-sudarshan-codex.ps1
+agent-loop-codex.ps1
 # Or:
-sudarshan-claude.ps1
+agent-loop-claude.ps1
 ```
 
 Sign in to the intended account in each client. Ask each agent to report loaded instructions, selected vault, and available skills, then read git status without changing anything. Verify a small synthetic PRD uses the intended skill. `doctor` verifies installation files and executable discovery, not authentication, interactive terminal behavior, or actual model loading.
 
-To invoke from an app that requires an executable, use `pwsh.exe` as the executable with arguments `-NoProfile -File "C:\full\path\sudarshan-codex.ps1"` (or the Claude equivalent). Native Windows Orca UI integration has not been verified; use terminal launchers unless the app supports separate executable/argument fields. Injected CODEX_HOME, CLAUDE_CONFIG_DIR, and ORCA_* values are preserved.
+To invoke from an app that requires an executable, use `pwsh.exe` as the executable with arguments `-NoProfile -File "C:\full\path\agent-loop-codex.ps1"` (or the Claude equivalent). Native Windows Orca UI integration has not been verified; use terminal launchers unless the app supports separate executable/argument fields. Injected CODEX_HOME, CLAUDE_CONFIG_DIR, and ORCA_* values are preserved.
 
 ## Separate job or account
 
@@ -70,7 +70,7 @@ New-Item -ItemType Directory -Force "$HOME\Work\Projects" | Out-Null
 .\install.ps1 -Workspace "$HOME\Work\Projects" -Prefix "$HOME\.local\agent-loop-work" -CodexHome "$HOME\.codex-work" -ClaudeHome "$HOME\.claude-work"
 $env:CODEX_HOME = "$HOME\.codex-work"
 $env:CLAUDE_CONFIG_DIR = "$HOME\.claude-work"
-& "$HOME\.local\agent-loop-work\bin\sudarshan-codex.ps1"
+& "$HOME\.local\agent-loop-work\bin\agent-loop-codex.ps1"
 ```
 
 Authenticate again in those homes and attach only an approved work vault. Use a separate OS account when stronger isolation is needed. Separate agent homes do not restrict filesystem access or necessarily separate provider credentials in OS stores.
@@ -79,4 +79,4 @@ Authenticate again in those homes and attach only an approved work vault. Use a 
 
 Pull updates, run `python -m unittest discover -s tests -v`, and rerun install.ps1 with the same options. Launchers run installed copies. If the Python interpreter moves, reinstall to refresh its absolute path. Files use UTF-8 on every platform, including non-ASCII vault paths.
 
-To stop using the harness, launch the bare clients. Remove only the managed instruction blocks, unchanged harness skill copies, the two `.ps1` launchers, and the selected prefix's `lib\sudarshan-agent-loop` directory. Preserve newer unrelated edits; restore backups only after reviewing them. No Windows service, scheduled task, or authentication configuration is installed by this harness.
+To stop using the harness, launch the bare clients. Remove only the managed instruction blocks, unchanged harness skill copies, the two `.ps1` launchers, and the selected prefix's `lib\agent-loop` directory. Preserve newer unrelated edits; restore backups only after reviewing them. No Windows service, scheduled task, or authentication configuration is installed by this harness.

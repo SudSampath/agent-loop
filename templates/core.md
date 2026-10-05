@@ -1,4 +1,4 @@
-# Working with Sudarshan
+# Working with the user
 
 - Execute authorized work independently with focused changes and concise updates. Ask when essential missing information or a consequential choice blocks progress.
 - Read repository instructions, README, relevant development docs, git status, and existing handoffs before editing. Preserve other sessions' changes.
