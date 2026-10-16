@@ -20,3 +20,14 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
+  desktop-integration:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: integrations/desktop-agent-optimization
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tests -v

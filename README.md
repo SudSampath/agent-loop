@@ -52,6 +52,10 @@ python3 -m unittest discover -s tests -v
 
 See [design and provenance](docs/design.md) for the source notes and platform limits. See [validation record](docs/validation.md) for what was actually tested.
 
+## Native desktop optimization
+
+Experimental macOS native-app optimization tools are available in [integrations/desktop-agent-optimization](integrations/desktop-agent-optimization/README.md). Setup is opt-in and separate from the portable harness installer; the guide records verified routing and remaining coverage limits.
+
 ## License
 
 [MIT](LICENSE)
