@@ -26,6 +26,12 @@ Verification needs a synthetic probe: an isolated Codex home with synthetic Chat
 
 The route has no alternate path; while Headroom is unavailable, routed Codex clients using this home cannot reach inference. The service's LaunchAgent KeepAlive restarts an exited proxy, not a hung one. Rollback never contacts the proxy, and `report` degrades to log-only attribution with `proxy_ready` false. Recovery requires reopening the app or starting a fresh conversation, so an automatic configuration edit would likely not rescue an active conversation. Automatic failover is unimplemented and needs a design decision before it changes live settings unattended.
 
+## Update rechecks
+
+Native RTK coverage depends on the bundled runtime honoring a user hook and its saved trust hash. Both can change with an app update; an untrusted or modified hook is skipped without an error. The runtime probe separates these failures. It first reports whether the runtime accepts the copied trust (`trusted` versus `modified`), then trusts the copies in the temporary home and runs the turn, so a stale hash and a broken hook path are reported separately. Validation with bundled Codex 0.162.0-alpha.17.2 passed with the live hook and trust. Negative runs with no RTK hook and with a stale hash both failed as expected. The probe proves the bundled runtime and hook configuration, not app-specific launch behavior. The app UI is not scripted, so the native workflow remains a manual spot check after updates.
+
+The LaunchAgent watches each app's `Info.plist`, the bundled Codex package manifest, and Claude's bundled-runtime directory. A daily run covers any update a watch misses. It never edits configuration and only notifies on failure or a version change. Claude desktop's bundled Claude Code reads `~/.claude/settings.json` hooks without a trust step, so its check is limited to hook presence.
+
 ## Isolated mock probe
 
 Headroom routes ChatGPT account authentication to a separate ChatGPT target; overriding the ordinary OpenAI target alone does not redirect it. The fixture launcher redirects both targets in memory. It uses synthetic credentials and a generated prompt, never real authentication stores.
