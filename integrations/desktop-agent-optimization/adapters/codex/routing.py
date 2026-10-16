@@ -18,7 +18,8 @@ import tomllib
 from urllib.request import urlopen
 
 PROXY = 'http://127.0.0.1:8787'
-BASE_URL = PROXY + '/p/codex-desktop-native/v1'
+PROJECT = 'codex-desktop-native'
+BASE_URL = PROXY + f'/p/{PROJECT}/v1'
 BLOCK = ('# desktop-agent-optimization: native Codex routing\n'
          f'openai_base_url = "{BASE_URL}"\n'
          '# desktop-agent-optimization: end\n')
@@ -29,6 +30,14 @@ NATIVE_APPS = {
     '/Applications/ChatGPT.app/Contents/MacOS/ChatGPT',
     '/Applications/Codex.app/Contents/MacOS/Codex',
 }
+# Headroom 0.37.0 PERF fields and WebSocket termination causes; nothing else is kept.
+PERF_FIELDS = {'tok_before': 'tokens_before', 'tok_after': 'tokens_after',
+               'tok_saved': 'tokens_saved', 'total_saved': 'total_tokens_saved',
+               'tok_inflated': 'tokens_inflated', 'cache_read': 'cache_read_tokens',
+               'tok_out': 'output_tokens'}
+CLOSE_CAUSES = {'client_disconnect', 'upstream_disconnect', 'upstream_error', 'client_error',
+                'client_cancel', 'response_completed', 'client_timeout', 'unknown'}
+PROJECT_FIELDS = ('requests', 'tokens_saved', 'total_input_tokens')
 
 
 def digest(data):
@@ -111,12 +120,14 @@ def proxy_snapshot():
         'requests_total': stats.get('requests', {}).get('total', 0),
         'requests_failed': stats.get('requests', {}).get('failed', 0),
         'compression_tokens_saved': stats.get('tokens', {}).get('proxy_compression_saved', 0),
-        'request_logs': [{
-            'request_id': str(item.get('request_id', '')),
-            'error': bool(item.get('error')),
-            'savings_percent': item.get('savings_percent', 0),
-        } for item in stats.get('request_logs', [])],
     }
+
+
+def project_counters(name):
+    """Headroom's lifetime counters for one /p/<name> route; its clients share them."""
+    with urlopen(PROXY + '/stats-lifetime', timeout=5) as response:
+        project = json.load(response).get('projects', {}).get(name, {})
+    return {field: project.get(field, 0) for field in PROJECT_FIELDS}
 
 
 def enable(config_path=CONFIG, state_dir=STATE_DIR):
@@ -263,29 +274,94 @@ def parse_native_websockets(lines, peer_ports):
     return connections
 
 
+def log_lines_since(log, inode, offset):
+    """Read from the enable offset, following RotatingFileHandler renames."""
+    files = [path for path in [log, *(log.with_name(f'{log.name}.{n}') for n in range(1, 10))]
+             if path.exists()]
+    start = next((index for index, path in enumerate(files) if path.stat().st_ino == inode), None)
+    if start is None or files[start].stat().st_size < offset:
+        return [], False
+    lines = []
+    for index in range(start, -1, -1):
+        with files[index].open('rb') as handle:
+            handle.seek(offset if index == start else 0)
+            lines += handle.read().decode(errors='replace').splitlines()
+    return lines, True
+
+
+def session_outcomes(lines, fingerprints):
+    """Join native WebSocket connections to Headroom's per-turn PERF records.
+
+    Each WebSocket turn's outcome row gets a fresh request ID, but its PERF
+    line keeps the connection's inbound request ID. Only counts are kept.
+    """
+    sessions = {fingerprint: {'fingerprint': fingerprint, 'outcome_records': 0,
+                              **dict.fromkeys(PERF_FIELDS.values(), 0),
+                              'client_frames': None, 'cancel_frames': None, 'close_cause': None}
+                for fingerprint in fingerprints}
+    for line in lines:
+        perf = re.search(r'\[([A-Za-z0-9_-]+)\] PERF (.*)', line)
+        completed = re.search(r'\[([A-Za-z0-9_-]+)\] WS /v1/responses completed \((.*)\)', line)
+        closed = re.search(r'event=proxy_inbound_websocket_closed request_id=([A-Za-z0-9_-]+) '
+                           r'.*?\bcause=([a-z_]+)', line)
+        match = perf or completed or closed
+        session = match and sessions.get(digest(match.group(1).encode()))
+        if not session:
+            continue
+        if perf:
+            session['outcome_records'] += 1
+            # The encoded savings breakdown and transform labels follow; labels can hold paths.
+            counts = perf.group(2).split(' savings=', 1)[0]
+            for name, value in re.findall(r'\b([a-z_]+)=(\d+)\b', counts):
+                if name in PERF_FIELDS:
+                    session[PERF_FIELDS[name]] += int(value)
+        elif completed:
+            # Frame counts only; the line also names frame types.
+            for name, value in re.findall(r'\b(client_frames|cancel_frames)=(\d+)\b', completed.group(2)):
+                session[name] = int(value)
+        else:
+            session['close_cause'] = closed.group(2) if closed.group(2) in CLOSE_CAUSES else 'unrecognized'
+    return list(sessions.values())
+
+
+def remember_sessions(state_dir, fingerprints):
+    """Keep native connection fingerprints so outcomes stay attributable after sockets close."""
+    path = Path(state_dir) / 'codex-routing.json'
+    known = json.loads(path.read_text()).get('native_websocket_fingerprints', [])
+    if set(fingerprints) <= set(known):
+        return known
+    with mutation_lock(Path(state_dir)):
+        state = json.loads(path.read_text())
+        known = state.setdefault('native_websocket_fingerprints', [])
+        known.extend(fingerprint for fingerprint in dict.fromkeys(fingerprints) if fingerprint not in known)
+        atomic_write(path, (json.dumps(state, indent=2) + '\n').encode())
+        return known
+
+
 def report(config_path=CONFIG, state_dir=STATE_DIR, inspect_native_app=False):
     state = json.loads((Path(state_dir) / 'codex-routing.json').read_text())
-    snapshot = proxy_snapshot()
+    try:
+        snapshot = proxy_snapshot()
+    except (OSError, RuntimeError):
+        # Log-based attribution still works while the proxy is down.
+        snapshot = None
     baseline = state['proxy_baseline']
     ancestors = native_backends() if inspect_native_app else native_ancestors()
     peers = native_peer_ports(ancestors)
-    lines, log_rotated = [], False
-    if LOG.exists():
-        stat = LOG.stat()
-        log_rotated = stat.st_ino != state['log_inode'] or stat.st_size < state['log_offset']
-        if not log_rotated:
-            with LOG.open('rb') as handle:
-                handle.seek(state['log_offset'])
-                lines = handle.read(16 * 1024 * 1024).decode(errors='replace').splitlines()
+    lines, log_complete = log_lines_since(LOG, state['log_inode'], state['log_offset'])
     matched = parse_native_requests(lines, peers)
     websockets = parse_native_websockets(lines, peers)
-    native_ids = {request['id'] for request in matched}
-    correlated = [entry for entry in snapshot['request_logs'] if entry['request_id'] in native_ids]
-    counters_reset = snapshot['requests_total'] < baseline['requests_total']
+    fingerprints = [digest(r['id'].encode()) for r in websockets]
+    sessions = session_outcomes(lines, remember_sessions(state_dir, fingerprints))
+
+    def since_enable(name):
+        return snapshot[name] - baseline[name] if snapshot else None
+
     return {
         'observed_at': datetime.now(timezone.utc).isoformat(),
         'routing_enabled': active_route(Path(config_path).read_bytes()),
-        'headroom_version': snapshot['version'],
+        'proxy_ready': snapshot is not None,
+        'headroom_version': snapshot['version'] if snapshot else None,
         'native_app_ancestry_observed': bool(ancestors),
         'process_observation_scope': 'running native app family' if inspect_native_app else 'executing tool ancestry',
         'native_backend_proxy_socket_observed': bool(peers),
@@ -293,14 +369,18 @@ def report(config_path=CONFIG, state_dir=STATE_DIR, inspect_native_app=False):
         'native_proxy_websocket_connections_observed': len(websockets),
         'native_inference_transport_verified': bool(matched or websockets),
         'native_proxy_request_fingerprints': [digest(r['id'].encode()) for r in matched],
-        'native_websocket_connection_fingerprints': [digest(r['id'].encode()) for r in websockets],
-        'native_request_stats_correlated': len(correlated),
-        'native_request_optimization_observed': any((r['savings_percent'] or 0) > 0 for r in correlated),
-        'aggregate_requests_since_enable': snapshot['requests_total'] - baseline['requests_total'],
-        'aggregate_compression_tokens_since_enable': snapshot['compression_tokens_saved'] - baseline['compression_tokens_saved'],
+        'native_websocket_connection_fingerprints': fingerprints,
+        'native_http_request_attribution_supported': False,
+        'native_sessions': sessions,
+        'native_session_optimization_attributed': any(s['outcome_records'] for s in sessions),
+        'native_session_tokens_saved': sum(s['total_tokens_saved'] for s in sessions),
+        # Every Codex client using this home shares the route; the name exists only for it.
+        'route_project_lifetime': project_counters(PROJECT) if snapshot else None,
+        'aggregate_requests_since_enable': since_enable('requests_total'),
+        'aggregate_compression_tokens_since_enable': since_enable('compression_tokens_saved'),
         'aggregate_savings_attributable_to_native_fixture': False,
-        'proxy_counters_reset': counters_reset,
-        'proxy_log_rotated': log_rotated,
+        'proxy_counters_reset': since_enable('requests_total') < 0 if snapshot else None,
+        'proxy_log_since_enable_complete': log_complete,
         'authentication_configuration_changed': False,
         'subscription_inference_verified': False,
         'boot_verified': False,

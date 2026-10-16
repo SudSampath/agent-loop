@@ -35,6 +35,29 @@ class NativeEvidenceTests(unittest.TestCase):
         self.assertTrue(result['rtk_ancestor'])
         self.assertTrue(result['native_app_ancestor'])
 
+    def test_claude_desktop_parent_is_native_but_cli_is_not(self):
+        """Given the desktop-bundled Claude Code under Claude.app and under Orca, when classified, then only the app qualifies."""
+        runtime = '/Users/fixture/Library/Application Support/Claude/claude-code/2.1.0/x/claude.app/Contents/MacOS/claude'
+        desktop = classify_ancestry(['/opt/homebrew/bin/rtk', runtime, '/Applications/Claude.app/Contents/MacOS/Claude'])
+        self.assertEqual((desktop['native_app'], desktop['rtk_ancestor'], desktop['bundled_backend_ancestor']),
+                         ('Claude', True, True))
+        orca = classify_ancestry([runtime, '/Applications/Orca.app/Contents/MacOS/Orca'])
+        self.assertFalse(orca['native_app_ancestor'])
+        self.assertIsNone(orca['native_app'])
+
+    def test_report_separates_rtk_coverage_by_app(self):
+        """Given native Git under Claude with RTK and under ChatGPT without, when reported, then coverage is per app."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            marker = repo / '.git' / 'desktop-probe'
+            marker.mkdir(parents=True)
+            (marker / 'owned-fixture').write_text('test')
+            (marker / 'controls.json').write_text('[]')
+            events = [{'stage': 'native_pending', 'native_app_ancestor': True, 'native_app': 'Claude', 'rtk_ancestor': True},
+                      {'stage': 'native_pending', 'native_app_ancestor': True, 'native_app': 'ChatGPT', 'rtk_ancestor': False}]
+            (marker / 'events.jsonl').write_text(''.join(json.dumps(e) + '\n' for e in events))
+            self.assertEqual(report(repo)['native_rtk_execution_by_app'], {'ChatGPT': False, 'Claude': True})
+
     def test_control_run_cannot_satisfy_native_acceptance(self):
         """Given an explicit RTK control, when reported, then native acceptance remains unverified."""
         with tempfile.TemporaryDirectory() as tmp:

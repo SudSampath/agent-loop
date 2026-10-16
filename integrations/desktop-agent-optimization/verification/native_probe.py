@@ -22,16 +22,21 @@ DEFAULT_REPO = PROJECT_ROOT / '.probe-workspace' / 'native-codex'
 NATIVE_MAIN_PATHS = {
     '/Applications/ChatGPT.app/Contents/MacOS/ChatGPT',
     '/Applications/Codex.app/Contents/MacOS/Codex',
+    '/Applications/Claude.app/Contents/MacOS/Claude',
 }
+# Runtimes the apps bundle; the same binaries also run outside the apps.
+BUNDLED_BACKENDS = ('/Contents/Resources/codex-cli/', '/Application Support/Claude/claude-code/')
 
 
 def classify_ancestry(executables):
     """Require the native application's main process, not a bundled CLI alone."""
+    apps = [Path(p).name for p in executables if p in NATIVE_MAIN_PATHS]
     return {
         'rtk_ancestor': any(Path(p).name == 'rtk' for p in executables),
-        'native_app_ancestor': any(p in NATIVE_MAIN_PATHS for p in executables),
+        'native_app_ancestor': bool(apps),
+        'native_app': apps[0] if apps else None,
         'bundled_backend_ancestor': any(
-            '/Contents/Resources/codex-cli/' in p for p in executables
+            marker in p for p in executables for marker in BUNDLED_BACKENDS
         ),
     }
 
@@ -122,6 +127,11 @@ def report(repo):
         'explicit_rtk_control_observed': any(e['stage'] == 'explicit_rtk_control' and e['rtk_ancestor'] for e in events),
         'native_git_execution_observed': bool(native),
         'native_rtk_execution_observed': any(e['rtk_ancestor'] for e in native),
+        # Events recorded before per-app classification carry no app name.
+        'native_rtk_execution_by_app': {
+            app: any(e['rtk_ancestor'] for e in native if e.get('native_app') == app)
+            for app in sorted({e.get('native_app') or 'unrecorded' for e in native})
+        },
         'headroom_inference': 'not measured by this shell probe',
         'observations': events,
     }
