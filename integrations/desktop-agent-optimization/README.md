@@ -10,7 +10,7 @@ Manual validation with ChatGPT desktop 26.930.61225, bundled Codex 0.160.1, and 
 - `verification/backend_probe.py` and `native_route_preflight.py`: isolated bundled-backend configuration discovery without credentials or inference.
 - `verification/proxy_probe.py`: a synthetic backend → separate Headroom → loopback mock comparison. The test runner guards egress, redirects the separate ChatGPT upstream to the mock in memory, and requires guard attestation before sending a proxied turn.
 - `verification/native_probe.py`: a generated Git fixture whose supported fsmonitor callback distinguishes direct Git, RTK, and native-app (ChatGPT, Codex, or Claude) executable ancestry.
-- `verification/claude_desktop.py`: read-only Claude desktop RTK readiness status.
+- `verification/codex_desktop.py` and `claude_desktop.py`: read-only RTK readiness status for each desktop app.
 - `verification/native_inference_fixture.py`: generated tool output with a fidelity marker.
 - `verification/runtime_inventory.py` and `startup_readiness.py`: allowlisted runtime/configuration metadata and a read-only current-readiness audit.
 
@@ -50,7 +50,7 @@ The expected marker is `KEEP-117-FIDELITY`. Inspect both native socket/request c
 
 `native_sessions` attributes optimization per native WebSocket connection by joining it to Headroom's per-turn PERF log lines. Each entry keeps only a connection fingerprint, token and frame counts, and the close cause. Fingerprints are remembered in the private state, so a report run after the socket closes still includes that connection. A connection can carry turns beyond the fixture; its totals are not fixture-only savings. Native HTTP requests are not attributable with Headroom 0.37.0.
 
-For the RTK fixture, first run `python3 -m verification.native_probe prepare`, then have the native app execute exactly `git status --short` in `.probe-workspace/native-codex` without adding an RTK prefix. Run `python3 -m verification.native_probe report` and require both native Git and native RTK execution evidence.
+RTK coverage is independent of the route. `python3 -m verification.codex_desktop status` requires `rtk_pre_tool_use_hook_configured` and `rtk_hook_trust_entry_present`; Codex skips untrusted hooks, and editing `hooks.json` can require trusting them again. It also reports the current route kind and never prints hook hashes. For the RTK fixture, first run `python3 -m verification.native_probe prepare`, then have the native app execute exactly `git status --short` in `.probe-workspace/native-codex` without adding an RTK prefix. Run `python3 -m verification.native_probe report` and require `native_rtk_execution_by_app.ChatGPT` to be true.
 
 ## Recovery and limits
 
