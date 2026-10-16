@@ -1,6 +1,7 @@
 ---
 name: dream
 description: Review recent cross-tool activity, write a dream digest, archive stale memories, and draft new ones for review. Reads the vault, Claude Code memory, Claude and Codex session transcripts, and git activity. Use for manual Dream reviews or recovering what happened in either client.
+license: MIT
 ---
 
 # dream

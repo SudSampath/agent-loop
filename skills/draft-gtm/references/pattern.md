@@ -5,4 +5,4 @@ Use capability, quality, and experience as differentiation lenses when relevant.
 
 For discovery: establish context, pain, fit, alternatives, and buying/decision process.
 For demos: orient the intended audience, demonstrate a useful result, explain the mechanism, and prepare a fallback.
-Choose the audience from me/audiences.md. Save the artifact locally unless publishing is authorized.
+Use the audience specified in the request or project context; consult me/audiences.md when a relevant vault is configured. Save the artifact locally unless publishing is authorized.

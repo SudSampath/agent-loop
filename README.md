@@ -1,5 +1,7 @@
 # Agent Loop
 
+The eight workflows are also available as a **free MIT-licensed skill bundle**. See the [skill catalog, prerequisites, and packaging guide](docs/skills.md) to use individual skills without installing the full harness.
+
 A portable harness that gives Codex and Claude Code the same working habits, skills, and memory on any computer. Install it once and both agents share one set of instructions, eight reviewed skills, and launchers that work inside Orca worktrees. A nightly Dream review reads both agents' sessions and turns confirmed lessons into durable instructions.
 
 The repository is deliberately generic: it refers to "the user". Who the user is, how they write, and who they write for stay in their own knowledge vault (`me/profile.md`, `me/voice.md`, `me/audiences.md`, and similar). The installer points both agents at those files instead of copying them, so personal context never enters this repository and is always current.

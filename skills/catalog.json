@@ -1,0 +1,54 @@
+{
+  "license": "MIT",
+  "price": "free",
+  "skills": [
+    {
+      "name": "handoff",
+      "group": "standalone",
+      "requires": ["Task context and a writable project folder"],
+      "example": "Prepare a handoff so another coding agent can finish this branch. Include changes, checks, blockers, and the exact next action."
+    },
+    {
+      "name": "create-tickets",
+      "group": "standalone",
+      "requires": ["Project requirements or feedback; a tracker connection only for creating remote tickets"],
+      "example": "Turn these requirements into scoped engineering tickets with dependencies and Given/When/Then acceptance criteria. Draft them locally."
+    },
+    {
+      "name": "draft-prd",
+      "group": "standalone",
+      "requires": ["Problem context and available evidence"],
+      "example": "Draft a PRD from these research notes. Separate evidence, assumptions, missing metrics, scope, and success criteria."
+    },
+    {
+      "name": "draft-gtm",
+      "group": "standalone",
+      "requires": ["A product, intended audience, and available customer evidence"],
+      "example": "Use these customer interviews to draft positioning for this audience. Label unsupported differentiation claims as hypotheses."
+    },
+    {
+      "name": "check-follow-ups",
+      "group": "connected",
+      "requires": ["Authorized read access to the user's email threads through available mail tools"],
+      "example": "Find important email threads where I sent the last message and am waiting on a reply. Report only; do not send or create drafts."
+    },
+    {
+      "name": "organize",
+      "group": "knowledge-system",
+      "requires": ["A configured shared knowledge vault with INDEX.md and authorized local file access"],
+      "example": "File these notes in my configured vault, update the relevant index, and preserve their sources and distinct revisions."
+    },
+    {
+      "name": "dream",
+      "group": "knowledge-system",
+      "requires": ["Configured vault, project root, and agent homes", "Authorized local access to session history and memory", "Harness scheduler only for nightly automation"],
+      "example": "Run a Dream review of recent work using my configured vault and agent homes. Show archive candidates with --dry-run; do not promote lessons."
+    },
+    {
+      "name": "dream-review",
+      "group": "knowledge-system",
+      "requires": ["Configured shared vault and agent-loop checkout", "Existing Dream drafts marked ready and the user's review decisions"],
+      "example": "Walk me through the ready Dream drafts one at a time. Show the evidence and proposed scope before promoting any lesson."
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 ---
 name: dream-review
 description: Walk through Dream drafts marked ready and promote each accepted lesson to the scope where both Codex and Claude will use it. Use weekly, or when a dream digest reports ready drafts.
+license: MIT
 ---
 
 # dream-review

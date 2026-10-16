@@ -1,10 +1,11 @@
 ---
 name: draft-gtm
-description: Draft positioning, go-to-market narratives, discovery guides, or demos in the user's voice.
+description: Draft evidence-backed positioning, go-to-market narratives, discovery guides, or demos for a specified audience.
+license: MIT
 ---
 
-# draft-gtm
+# Draft positioning and GTM work
 
-Read the shared voice and audience files and references/pattern.md. Ground customer pain and differentiation in evidence. Produce a local artifact for the intended audience; do not auto-publish to Notion or send messages.
+Read the [positioning pattern](references/pattern.md) and relevant project evidence. Use the audience and writing preferences supplied by the user or project. If a relevant personal vault is configured, resolve it from the active instructions, read its INDEX.md, then consult the specific voice or audience notes. A vault is optional.
 
-Resolve the vault from the active global/project loader. If it is unavailable, ask for its location; do not fall back to an old employer vault. Shared context lives in me/ and patterns/.
+Ground customer pain and differentiation in evidence. Distinguish verified claims from hypotheses, and verify current competitor claims when they matter. Produce a local artifact for the intended audience; publishing or sending it requires authorization from the task.

@@ -1,6 +1,7 @@
 ---
 name: organize
 description: File and index notes in the user's combined vault while preserving provenance and links.
+license: MIT
 ---
 
 # organize

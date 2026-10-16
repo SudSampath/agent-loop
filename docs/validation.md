@@ -1,5 +1,11 @@
 # Validation record — 2026-09-22
 
+## Free skill packaging — 2026-10-15
+
+All eight skill folders pass the skill-creator format validator. The root suite ran 38 tests successfully with one platform-specific skip. New package tests verify the real eight-skill archive, resource/license preservation, checksums, reproducibility, unchanged sources, protected output/source directories, missing references, code-example links, symlink rejection, catalog completeness, and unexpected file exclusion. These checks validate packaging and source invariants, not live behavior in every agent.
+
+Four general workflows now use supplied project context without requiring a personal vault. Mail and knowledge-system prerequisites are explicit in the catalog. The generated distribution contains eight individual ZIPs and one combined free MIT bundle; no skill installation, marketplace submission, account connection, or live client configuration change occurs during packaging.
+
 Validated on macOS with Python standard-library unittest, using temporary homes and stub agent/optimizer executables. Ten Given/When/Then checks cover repeated installation, preservation/backups, dry-run behavior, conflicting skills, paths containing spaces, argument and Orca environment forwarding, runtime-home instructions/skills, help without mutations, additive hooks, wrapping arguments, malformed configuration, doctor output, and hook rewrite/pass-through behavior.
 
 These tests do not authenticate providers, spend tokens, start Headroom, install a login service, or edit the active Mac's harness. The source Mac runbook records successful live Claude/Codex proxy sessions on 2026-09-21; that is evidence for the original integration, not an end-to-end test of this new installer.

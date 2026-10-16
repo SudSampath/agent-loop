@@ -1,10 +1,13 @@
 ---
 name: create-tickets
-description: Draft actionable tickets and engineering task specifications with observable acceptance criteria.
+description: Turn project requirements or feedback into actionable engineering tickets with scope, dependencies, and observable acceptance criteria.
+license: MIT
 ---
 
-# create-tickets
+# Create tickets
 
-Read references/pattern.md and the relevant project context. Include rationale, scope, dependencies, and observable acceptance criteria. Use the target repository's test conventions for engineering work. Draft locally unless the request authorizes creating tickets in the specified service/project. Verify the created ticket if creation is requested.
+Read the [ticket pattern](references/pattern.md) and relevant project context. Include the rationale, scope, dependencies, and observable acceptance criteria. Follow the target repository's test conventions for engineering work. Separate implementation suggestions from the behavior contract and leave missing evidence explicit.
 
-Resolve the vault from the active global/project loader. If it is unavailable, ask for its location; do not fall back to an old employer vault. Shared context lives in me/ and patterns/.
+Use context supplied by the user or project. A personal knowledge vault is optional; if one is configured and relevant, resolve it from the active instructions and read its INDEX.md before consulting specific notes.
+
+Draft locally unless the task authorizes creating tickets in a named service and project. If creation is requested, verify the created tickets and their destination.
