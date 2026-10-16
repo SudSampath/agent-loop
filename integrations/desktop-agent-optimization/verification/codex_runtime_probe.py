@@ -137,6 +137,11 @@ def run_turn(client, repo):
     return completed['params']['turn']['status'], sorted({run.get('status') for run in hooks})
 
 
+def trust_accepted(hooks):
+    """Codex runs a user hook only while its saved hash matches; `modified` and `untrusted` are skipped."""
+    return bool(hooks) and all(hook.get('trustStatus') == 'trusted' for hook in hooks)
+
+
 def summarize(events, hooks_copied, saved_trust, turn_status, hook_runs, observations):
     runtime = [event for event in events if event.get('bundled_backend_ancestor')
                and not event.get('native_app_ancestor')]
@@ -178,7 +183,7 @@ def probe(binary=DEFAULT_BINARY, user_home=CODEX_HOME):
                 hooks = rtk_hook_metadata(client, repo)
             finally:
                 close_backend(process, client)
-            saved_trust = bool(hooks) and all(h.get('trustStatus') == 'trusted' for h in hooks)
+            saved_trust = trust_accepted(hooks)
             # Trust the copies regardless so a stale hash and a broken hook path are reported separately.
             write_config(probe_home, endpoint, {hook['key']: {'trusted_hash': hook['currentHash']} for hook in hooks})
             process, client = start_backend(binary, probe_home, root)

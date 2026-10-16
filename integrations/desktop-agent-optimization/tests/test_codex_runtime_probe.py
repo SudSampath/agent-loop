@@ -11,6 +11,8 @@ from verification import codex_runtime_probe
 
 ORCA_HOOK = {'type': 'command', 'command': ': orca-agent-hook-form=1; /bin/sh hook.sh || :'}
 RTK_HOOK = {'type': 'command', 'command': '/fixture/lib/rtk-codex-hook.py'}
+RTK_UNDER_RUNTIME = [{'bundled_backend_ancestor': True, 'native_app_ancestor': False, 'rtk_ancestor': True}]
+SHELL_OFFERED = [{'shell_tool_offered': True, 'tool_output_returned': True}]
 
 
 class CodexRuntimeProbeTests(unittest.TestCase):
@@ -62,17 +64,23 @@ class CodexRuntimeProbeTests(unittest.TestCase):
             server.server_close()
             worker.join(timeout=2)
 
-    def test_stale_trust_or_native_events_cannot_pass(self):
-        """Given a modified trust hash, or RTK only under the native app, when summarized, then the check fails."""
-        offered = [{'shell_tool_offered': True, 'tool_output_returned': True}]
-        runtime_rtk = [{'bundled_backend_ancestor': True, 'native_app_ancestor': False, 'rtk_ancestor': True}]
-        passing = codex_runtime_probe.summarize(runtime_rtk, 1, True, 'completed', ['completed'], offered)
-        self.assertTrue(passing['checks_passed'])
-        stale = codex_runtime_probe.summarize(runtime_rtk, 1, False, 'completed', ['completed'], offered)
-        self.assertFalse(stale['checks_passed'])
-        self.assertTrue(stale['bundled_runtime_rtk_observed'])
-        native_only = [{'bundled_backend_ancestor': True, 'native_app_ancestor': True, 'rtk_ancestor': True}]
-        result = codex_runtime_probe.summarize(native_only, 1, True, 'completed', ['completed'], offered)
+    def test_update_that_makes_rtk_trust_stale_fails_the_check(self):
+        """Given an app update makes Codex mark the saved RTK hook as modified, when the post-update check is scored, then it fails, because Codex skips modified hooks even though RTK itself still works."""
+        after_update = [{'key': 'fixture', 'currentHash': 'sha256:after-update', 'trustStatus': 'modified'}]
+        result = codex_runtime_probe.summarize(RTK_UNDER_RUNTIME, 1, codex_runtime_probe.trust_accepted(after_update),
+                                               'completed', ['completed'], SHELL_OFFERED)
+        self.assertFalse(result['saved_trust_valid_for_runtime'])
+        self.assertTrue(result['bundled_runtime_rtk_observed'])
+        self.assertFalse(result['checks_passed'])
+        before_update = [{**after_update[0], 'trustStatus': 'trusted'}]
+        result = codex_runtime_probe.summarize(RTK_UNDER_RUNTIME, 1, codex_runtime_probe.trust_accepted(before_update),
+                                               'completed', ['completed'], SHELL_OFFERED)
+        self.assertTrue(result['checks_passed'])
+
+    def test_rtk_seen_only_under_the_native_app_does_not_count(self):
+        """Given RTK observed only under the running app, when the bundled-runtime check is scored, then it fails, because the probe must see its own runtime run RTK."""
+        native_only = [{**RTK_UNDER_RUNTIME[0], 'native_app_ancestor': True}]
+        result = codex_runtime_probe.summarize(native_only, 1, True, 'completed', ['completed'], SHELL_OFFERED)
         self.assertFalse(result['bundled_runtime_git_observed'])
         self.assertFalse(result['checks_passed'])
 
