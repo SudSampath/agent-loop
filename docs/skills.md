@@ -1,6 +1,6 @@
 # Free agent-loop skills
 
-Eight MIT-licensed skills are available individually or as one free bundle. Start with the four standalone workflows; they use the context you provide and do not require a personal vault. There is no purchase, marketplace account, or subscription requirement.
+Nine MIT-licensed skills are available individually or as one free bundle. Start with the four standalone workflows; they use the context you provide and do not require a personal vault. There is no purchase, marketplace account, or subscription requirement.
 
 | Skill | What it helps with | Setup |
 |---|---|---|
@@ -12,6 +12,7 @@ Eight MIT-licensed skills are available individually or as one free bundle. Star
 | `organize` | File and index notes while preserving provenance | Configured knowledge vault with INDEX.md |
 | `dream` | Review recent work and draft lessons for review | Vault, project root, agent homes, and authorized history access |
 | `dream-review` | Review ready Dream drafts and place accepted lessons at the right scope | Existing Dream drafts and the configured knowledge system |
+| `sync-meetings` | Save each new call's transcript and grounded summary as one vault note | Configured vault and an authenticated Granola or Fireflies connector |
 
 The catalog includes a concrete example prompt and prerequisites for each skill. Skill format portability does not guarantee the same tools, filesystem access, or connectors in every agent. Agent-specific runtime behavior still needs validation in the intended environment.
 
@@ -35,7 +36,7 @@ From an agent-loop checkout with Python 3.10+:
 python3 tools/package_skills.py
 ```
 
-The ignored `dist/skills/` directory contains eight individual ZIPs, `agent-loop-skills.zip`, a catalog with prompts/prerequisites and source hashes, this guide, and SHA256SUMS. Each individual ZIP extracts to a skill-named folder with SKILL.md, references when needed, and LICENSE. The combined ZIP contains `skills/<name>/` folders, a catalog, guide, and license.
+The ignored `dist/skills/` directory contains nine individual ZIPs, `agent-loop-skills.zip`, a catalog with prompts/prerequisites and source hashes, this guide, and SHA256SUMS. Each individual ZIP extracts to a skill-named folder with SKILL.md, references when needed, and LICENSE. The combined ZIP contains `skills/<name>/` folders, a catalog, guide, and license.
 
 The builder preserves source files, refuses symlinked resources and nonempty unmanaged output directories, and emits reproducible archives. ZIPs contain only skill resources and licensing/documentation; they exclude vaults, account credentials, transcripts, runtime state, and native optimizer evidence.
 

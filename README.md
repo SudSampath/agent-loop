@@ -1,8 +1,8 @@
 # Agent Loop
 
-The eight workflows are also available as a **free MIT-licensed skill bundle**. See the [skill catalog, prerequisites, and packaging guide](docs/skills.md) to use individual skills without installing the full harness.
+The nine workflows are also available as a **free MIT-licensed skill bundle**. See the [skill catalog, prerequisites, and packaging guide](docs/skills.md) to use individual skills without installing the full harness.
 
-A portable harness that gives Codex and Claude Code the same working habits, skills, and memory on any computer. Install it once and both agents share one set of instructions, eight reviewed skills, and launchers that work inside Orca worktrees. A nightly Dream review reads both agents' sessions and turns confirmed lessons into durable instructions.
+A portable harness that gives Codex and Claude Code the same working habits, skills, and memory on any computer. Install it once and both agents share one set of instructions, nine reviewed skills, and launchers that work inside Orca worktrees. A nightly Dream review reads both agents' sessions and turns confirmed lessons into durable instructions.
 
 The repository is deliberately generic: it refers to "the user". Who the user is, how they write, and who they write for stay in their own knowledge vault (`me/profile.md`, `me/voice.md`, `me/audiences.md`, and similar). The installer points both agents at those files instead of copying them, so personal context never enters this repository and is always current.
 
@@ -32,12 +32,13 @@ To attach an Obsidian vault, finish syncing it and add `--vault "/path/to/your/v
 ## What comes with it
 
 - One shared set of working instructions, adapted to local paths for both clients.
-- PRD, GTM, tickets, organize, handoff, dream, dream-review, and follow-up check skills, with portable references.
+- PRD, GTM, tickets, organize, handoff, dream, dream-review, follow-up check, and meeting sync skills, with portable references.
 - Repeatable installer with preview, backups, conflict checks, and a doctor command.
 - Launchers that preserve Orca's injected environment and support its separate runtime home.
 - Optional Headroom proxy and additive RTK hooks.
 - Opt-in Orca shell routing so bare agent commands in worktree terminals also reach the wrappers.
 - Opt-in nightly unattended Dream run across both clients (launchd or systemd).
+- Opt-in daily meeting sync that saves call transcripts and summaries from Granola or Fireflies into the vault.
 - [Daily workflow](docs/workflow.md), [new job and migration guidance](docs/setup.md#another-job), and a [handoff template](templates/handoff.md).
 
 Credentials, connected accounts, employer data, and session history are configured locally. Cloning this repo does not authenticate the agents or connect Obsidian Sync.

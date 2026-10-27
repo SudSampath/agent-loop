@@ -28,11 +28,11 @@ def fixture(root):
 
 class SkillPackageTests(unittest.TestCase):
     def test_repository_bundle_contains_all_skills_and_original_resources(self):
-        """Given the real skill sources, when bundled, then all eight retain their resources and license."""
+        """Given the real skill sources, when bundled, then all nine retain their resources and license."""
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / 'distribution'
             result = package_skills.build(output=output)
-            self.assertEqual(result['skills'], 8)
+            self.assertEqual(result['skills'], 9)
             catalog = json.loads((output / 'catalog.json').read_text())
             with zipfile.ZipFile(output / 'agent-loop-skills.zip') as combined:
                 for skill in catalog['skills']:

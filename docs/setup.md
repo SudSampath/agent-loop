@@ -114,6 +114,17 @@ It reads the project root and vault from the installed harness and runs through 
 
 The run passes `--dangerously-skip-permissions` so `/dream --unattended` can archive stale memories, write draft memories, and compress old session notes without prompts. Those moves are reversible and the skill never commits, pushes, or sends anything. Add `--propose-only` to run Dream with `--dry-run` instead: a digest only, no file moves. Logs go to `PREFIX/state/agent-loop/dream/`. To remove it: `launchctl bootout gui/$(id -u)/com.agent-loop.dream` and delete `~/Library/LaunchAgents/com.agent-loop.dream.plist`, or `systemctl --user disable --now agent-loop-dream.timer` and delete both units in `~/.config/systemd/user/`.
 
+## Daily meeting sync (optional, macOS/Linux/WSL2)
+
+`sync-meetings` saves each new call from Granola or Fireflies as one note in the vault's `meetings/` folder. The note holds a summary, decisions, and action items grounded in the transcript, the tool's own notes, and the full transcript. Connect and authenticate the meeting tool in Claude first, then run `/sync-meetings --dry-run` once by hand to confirm the account and the calls it finds. To run it once a day at 02:00, an hour before Dream so Dream sees the day's calls:
+
+```sh
+python3 bootstrap.py meetings-schedule --dry-run
+python3 bootstrap.py meetings-schedule
+```
+
+It takes the same `--hour`/`--minute`, `--propose-only`, `--no-load`, and path options as `dream-schedule`. The run skips permission prompts so it can call the meeting connector and write notes. It only reads from the meeting tools and never overwrites a note that already exists. State and settings live in the vault: `ops/meetings-sync-state.json` (cursors), `ops/meetings-history.log` (one line per run), and an optional `ops/meetings-sync-settings.json` that you write yourself. That file can list `exclude_folders` and `exclude_titles` for calls that must never be saved, such as medical appointments. Logs go to `PREFIX/state/agent-loop/meetings/`. To remove it, use the Dream commands above with `com.agent-loop.meetings` or `agent-loop-meetings` in place of the Dream names.
+
 ## Another job
 
 Create a separate OS account when work policy requires isolation. For convenience separation in one account, use separate homes and install prefix:
