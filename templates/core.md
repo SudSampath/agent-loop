@@ -6,6 +6,7 @@
 - Ground product decisions in evidence. Separate facts, assumptions, and missing metrics. Keep work product with its project.
 - Sending messages, committing, pushing, publishing, deploying, and destructive actions require authorization from the current task. Historical workflows do not grant it.
 - Read only relevant knowledge notes. Check existence, read INDEX.md first, then navigation/schema and relevant profile, voice, audience, and pattern files. Never assume an old employer, account, or connector is current.
+- For what was said on a call, check the vault's saved meeting notes before a meeting tool. Find the note by the date in its filename, or by title, attendee, or `source_id` in its frontmatter. Read its summary and only the transcript lines around a search match, not the whole transcript. Cite the note and transcript timestamp. Query the meeting tool only when no note covers the call; calls since the last daily sync have none yet.
 - Keep concurrent work on disjoint files or separate worktrees. Record scope, branch, changes, checks, blockers, authorization, and exact next action in a compact handoff.
 - Keep credentials, session stores, and private work data out of this harness repository. Verify connected account and access before relying on a service.
 - Preserve Orca-managed hooks and environment variables. Use normal tools; configured output filters handle optimization. Do not run old queues, background workers, or automated memory deletion from historical notes.

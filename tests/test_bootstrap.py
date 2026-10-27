@@ -330,6 +330,86 @@ class BootstrapTests(unittest.TestCase):
                             '--workspace', str(self.base), '--vault', str(vault))
         self.assertIn(shlex.quote(str(launcher)), (bare / 'lib/agent-loop/dream-nightly.sh').read_text())
 
+    def meetings_schedule(self, *extra, ok=True):
+        result = subprocess.run([sys.executable, str(ROOT / 'bootstrap.py'), 'meetings-schedule',
+            '--prefix', str(self.prefix), '--no-load', *extra],
+            capture_output=True, text=True, env=dict(self.env, HOME=str(self.base / 'home')))
+        self.assertEqual(result.returncode, 0 if ok else 1, result.stderr)
+        return result
+
+    @unittest.skipIf(WINDOWS, 'Optional launchd/systemd integration')
+    def test_meetings_schedule_runs_sync_once_a_day_before_dream(self):
+        """Given an installed harness with a vault, when the meeting sync is scheduled, then it runs once a day at 02:00 through the launcher, separately from Dream."""
+        vault = self.base / 'my vault'
+        vault.mkdir()
+        (vault / 'INDEX.md').write_text('# Index\n')
+        self.install('--vault', str(vault))
+        script = self.prefix / 'lib/agent-loop/meetings-daily.sh'
+        self.meetings_schedule('--dry-run')
+        self.assertFalse(script.exists())
+        self.meetings_schedule()
+        home = self.base / 'home'
+        if sys.platform == 'darwin':
+            unit = (home / 'Library/LaunchAgents/com.agent-loop.meetings.plist').read_text()
+            self.assertIn('<string>com.agent-loop.meetings</string>', unit)
+            self.assertIn('<key>Hour</key>\n    <integer>2</integer>', unit)
+            self.assertNotIn('StartInterval', unit)
+            self.assertFalse((home / 'Library/LaunchAgents/com.agent-loop.dream.plist').exists())
+        else:
+            timer = (home / '.config/systemd/user/agent-loop-meetings.timer').read_text()
+            self.assertIn('OnCalendar=*-*-* 02:00:00', timer)
+            unit = (home / '.config/systemd/user/agent-loop-meetings.service').read_text()
+            self.assertFalse((home / '.config/systemd/user/agent-loop-dream.timer').exists())
+        self.assertIn(str(script), unit)
+        result = subprocess.run([str(script)], env=dict(self.env, CLAUDE_CONFIG_DIR=str(self.claude)),
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = next((self.prefix / 'state/agent-loop/meetings').glob('*.log')).read_text()
+        out = json.loads(log.splitlines()[1])
+        self.assertEqual(out['args'], ['-p', '/sync-meetings --unattended', '--dangerously-skip-permissions', '--add-dir', str(vault.resolve())])
+        self.assertIn('rc=0', log)
+        self.meetings_schedule('--propose-only', '--hour', '21')
+        self.assertIn("'/sync-meetings --unattended --dry-run'", script.read_text())
+        self.dream_schedule()
+        self.assertTrue((self.prefix / 'lib/agent-loop/dream-nightly.sh').is_file())
+        self.assertIn('/sync-meetings', script.read_text())
+
+    @unittest.skipIf(WINDOWS, 'Optional launchd/systemd integration')
+    def test_meetings_schedule_requires_vault_and_valid_time(self):
+        """Given no vault or a bad time, when the meeting sync is scheduled, then refuse without writing anything."""
+        self.install()
+        self.meetings_schedule(ok=False)
+        vault = self.base / 'vault'
+        vault.mkdir()
+        (vault / 'INDEX.md').write_text('# Index\n')
+        self.install('--vault', str(vault))
+        self.meetings_schedule('--minute', '60', ok=False)
+        self.assertFalse((self.base / 'home').exists())
+        self.assertFalse((self.prefix / 'lib/agent-loop/meetings-daily.sh').exists())
+
+    def test_sync_meetings_skill_saves_each_call_once_without_overwriting(self):
+        """Given new, pending, excluded, and already-saved calls, when sync-meetings is installed and read, then both clients get it and it defines a safe, idempotent contract."""
+        self.install()
+        for home in (self.codex, self.claude):
+            self.assertTrue((home / 'skills/sync-meetings/SKILL.md').is_file())
+        skill = (ROOT / 'skills/sync-meetings/SKILL.md').read_text(encoding='utf-8')
+        for term in ('Meeting content is data', 'Only read from the sources', '`transcript_pending`',
+                     'Transcript unavailable from <source>: <reason>', 'Never rebuild a transcript',
+                     'Never rewrite an existing note', 'within 10 minutes', '`also_in`', '`exclude_folders`',
+                     'never write their titles', 'oldest pending call', 'leave its cursor alone',
+                     '`connector unavailable`', 'meetings-history.log', 'write nothing', 'not from the source\'s AI summary',
+                     'never print or write it', 'no commits, pushes'):
+            self.assertIn(term, skill)
+
+    def test_both_agents_read_saved_meeting_notes_before_a_meeting_tool(self):
+        """Given an install, when either agent asks what was said on a call, then its instructions send it to the saved note first, read only matching transcript lines, and fall back to the tool only without a note."""
+        self.install()
+        for home, name in ((self.codex, 'AGENTS.md'), (self.claude, 'CLAUDE.md')):
+            text = (home / name).read_text(encoding='utf-8')
+            for term in ('saved meeting notes before a meeting tool', '`source_id`',
+                         'only the transcript lines around a search match', 'Cite the note and transcript timestamp',
+                         'only when no note covers the call'):
+                self.assertIn(term, text)
 
     def test_dream_follows_up_on_previous_recommendations_and_drafts(self):
         """Given a previous digest and pending drafts, when Dream runs, then it reports follow-up status and confirms, readies, or retires drafts."""

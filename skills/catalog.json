@@ -49,6 +49,12 @@
       "group": "knowledge-system",
       "requires": ["Configured shared vault and agent-loop checkout", "Existing Dream drafts marked ready and the user's review decisions"],
       "example": "Walk me through the ready Dream drafts one at a time. Show the evidence and proposed scope before promoting any lesson."
+    },
+    {
+      "name": "sync-meetings",
+      "group": "knowledge-system",
+      "requires": ["Configured vault with INDEX.md", "An authenticated Granola or Fireflies connector (or a Fireflies API key in the environment)", "Harness scheduler only for daily automation"],
+      "example": "Sync my calls from the last 7 days into the vault with --dry-run. Show what would be saved; do not write anything."
     }
   ]
 }
