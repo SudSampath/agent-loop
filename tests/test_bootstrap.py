@@ -401,6 +401,15 @@ class BootstrapTests(unittest.TestCase):
                      'never print or write it', 'no commits, pushes'):
             self.assertIn(term, skill)
 
+    def test_both_agents_read_saved_meeting_notes_before_a_meeting_tool(self):
+        """Given an install, when either agent asks what was said on a call, then its instructions send it to the saved note first, read only matching transcript lines, and fall back to the tool only without a note."""
+        self.install()
+        for home, name in ((self.codex, 'AGENTS.md'), (self.claude, 'CLAUDE.md')):
+            text = (home / name).read_text(encoding='utf-8')
+            for term in ('saved meeting notes before a meeting tool', '`source_id`',
+                         'only the transcript lines around a search match', 'Cite the note and transcript timestamp',
+                         'only when no note covers the call'):
+                self.assertIn(term, text)
 
     def test_dream_follows_up_on_previous_recommendations_and_drafts(self):
         """Given a previous digest and pending drafts, when Dream runs, then it reports follow-up status and confirms, readies, or retires drafts."""
